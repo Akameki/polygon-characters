@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Web3Modal from "web3modal"
 import Image from 'next/image'
-
 import {
   nftmarketaddress, nftaddress
 } from '../config'
@@ -21,12 +20,12 @@ export default function MyCollection() {
   const [bought, setBought] = useState([])
   const [timers, updateTimers] = useState([])
   const [showModal, setShowModal] = useState(false);
+  const [showModalMinting, setShowModalMinting] = useState(false);
   const [loadingState, setLoadingState] = useState('not-loaded')
   const [address, setAddress] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
   async function getMETT(currentAccount) {
-    console.log("****getMETT address", currentAccount);
     const web3Modal = new Web3Modal()
     const connection = await web3Modal.connect()
     const provider = new ethers.providers.Web3Provider(connection)
@@ -41,7 +40,6 @@ export default function MyCollection() {
 
   // For now, 'eth_accounts' will continue to always return an array
   function handleAccountsChanged(accounts) {
-    console.log("****accounts,", accounts)
     if (accounts.length === 0) {
       // MetaMask is locked or the user has not connected any accounts
       console.log('Please connect to MetaMask.');
@@ -62,7 +60,6 @@ export default function MyCollection() {
   // MetaMask will reject any additional requests while the first is still
   // pending.
   function connect() {
-    console.log("****connect");
     window.ethereum
       .request({ method: 'eth_requestAccounts' })
       .then(handleAccountsChanged)
@@ -98,49 +95,50 @@ export default function MyCollection() {
     }
   }, [])
 
-  useEffect(() => {
-      async function loadFirebase() {
-        const firebaseConfig = {
-          // INSERT YOUR OWN CONFIG HERE
-          apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-          authDomain: "pay-a-vegan.firebaseapp.com",
-          databaseURL: "https://pay-a-vegan.firebaseio.com",
-          projectId: "pay-a-vegan",
-          storageBucket: "pay-a-vegan.appspot.com",
-          messagingSenderId: "587888386485",
-          appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-          measurementId: "G-MGJK6GF9YW"
-        };
+  async function loadFirebase() {
+    const firebaseConfig = {
+      // INSERT YOUR OWN CONFIG HERE
+      apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
+      authDomain: "pay-a-vegan.firebaseapp.com",
+      databaseURL: "https://pay-a-vegan.firebaseio.com",
+      projectId: "pay-a-vegan",
+      storageBucket: "pay-a-vegan.appspot.com",
+      messagingSenderId: "587888386485",
+      appId: "1:587888386485:web:3a81137924d19cbe2439fc",
+      measurementId: "G-MGJK6GF9YW"
+    };
 
-        const app = initializeApp(firebaseConfig)
+    const app = initializeApp(firebaseConfig)
 
-        const db = getFirestore(app)
-        //const auth = getAuth(app)
+    const db = getFirestore(app)
+    //const auth = getAuth(app)
 
-        const querySnapshot = await getDocs(collection(db, "characters"));
-        const items = [];
-        querySnapshot.forEach((doc) => {
-          let character = doc.data();
-          let item = {
-            id: doc.id,
-            price: character.price,
-            image: character.fileUrl,
-            name: character.name,
-            description: character.description,
-            sold: character.sold,
-            seller: character.seller,
-            owner: character.owner,
-            minted: character.minted
-          }
-          items.push(item)
-        })
-
-        const myItems = items.filter(i => i.seller === address)
-        const bougntItems = items.filter(i => i.owner === address && i.seller !== address)
-        setNfts(myItems)
-        setBought(bougntItems)
-        setLoadingState('loaded')
+    const querySnapshot = await getDocs(collection(db, "characters"));
+    const items = [];
+    querySnapshot.forEach((doc) => {
+      let character = doc.data();
+      let item = {
+        id: doc.id,
+        price: character.price,
+        image: character.fileUrl,
+        name: character.name,
+        description: character.description,
+        sold: character.sold,
+        seller: character.seller,
+        owner: character.owner,
+        minted: character.minted
       }
+      items.push(item)
+    })
+
+    const myItems = items.filter(i => i.seller === address)
+    const bougntItems = items.filter(i => i.owner === address && i.seller !== address)
+    setNfts(myItems)
+    setBought(bougntItems)
+    setLoadingState('loaded')
+  }
+
+  useEffect(() => {
     loadFirebase()
 
     return function cleanup() {
@@ -159,32 +157,34 @@ export default function MyCollection() {
       /* next, create the item */
       let contract = new ethers.Contract(nftaddress, NFT.abi, signer)
       let transaction = await contract.createToken(nft.image)
+      setShowModal(false)
+      setShowModalMinting(true)
       let tx = await transaction.wait()
       let event = tx.events[0]
       let value = event.args[2]
       let tokenId = value.toNumber()
 
-        const firebaseConfig = {
-          // INSERT YOUR OWN CONFIG HERE
-          apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-          authDomain: "pay-a-vegan.firebaseapp.com",
-          databaseURL: "https://pay-a-vegan.firebaseio.com",
-          projectId: "pay-a-vegan",
-          storageBucket: "pay-a-vegan.appspot.com",
-          messagingSenderId: "587888386485",
-          appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-          measurementId: "G-MGJK6GF9YW"
-        };
+      const firebaseConfig = {
+        // INSERT YOUR OWN CONFIG HERE
+        apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
+        authDomain: "pay-a-vegan.firebaseapp.com",
+        databaseURL: "https://pay-a-vegan.firebaseio.com",
+        projectId: "pay-a-vegan",
+        storageBucket: "pay-a-vegan.appspot.com",
+        messagingSenderId: "587888386485",
+        appId: "1:587888386485:web:3a81137924d19cbe2439fc",
+        measurementId: "G-MGJK6GF9YW"
+      };
 
-        const app = initializeApp(firebaseConfig)
+      const app = initializeApp(firebaseConfig)
 
-        const db = getFirestore(app)
-        const characterRef = doc(db, "characters", nft.id);
-        // Set the "capital" field of the city 'DC'
-        await updateDoc(characterRef, {
-          minted: true
-        });
-      setShowModal(false)
+      const db = getFirestore(app)
+      const characterRef = doc(db, "characters", nft.id);
+      // Set the "capital" field of the city 'DC'
+      await updateDoc(characterRef, {
+        minted: true
+      });
+      setShowModalMinting(false)
       loadFirebase()
     } catch (error) {
       setErrorMessage(error.message)
@@ -250,6 +250,14 @@ export default function MyCollection() {
     <div className="p-4">
       <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>
       <p>{errorMessage}</p>
+      <div className="loader"></div>
+    </div>
+  )
+  if (showModalMinting) return (
+    <div className="p-4">
+      <p>Please wait. We are waiting for Smart Contract to finish processing.</p>
+      <p>{errorMessage}</p>
+      {!errorMessage && <div className="loader4Color"></div>}
     </div>
   )
   return (
@@ -264,11 +272,17 @@ export default function MyCollection() {
                 {nft.sold ?
                   (<div className="p-4 bg-black">
                     <p className="text-2xl font-bold text-red-500">Sold - {nft.price} MATIC</p>
+                    <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
+                      Mint
+                    </button>
                   </div>)
                   :
 
                 (<div className="p-4 bg-black">
                   <p className="text-2xl font-bold text-white">Price - {nft.price} MATIC</p>
+                  <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
+                    Mint
+                  </button>
                 </div>)}
               </div>
             ))
@@ -280,6 +294,9 @@ export default function MyCollection() {
                 {nft.minted ? (
                   <div className="p-4 bg-black">
                     <p className="text-2xl font-bold text-red-500">Minted - {nft.price} MATIC</p>
+                    <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
+                      Mint
+                    </button>
                   </div>
                 ) : (
                   <div className="p-4 bg-black">

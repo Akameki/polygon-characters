@@ -1,4 +1,5 @@
 import '../styles/globals.css'
+import '../styles/spinner.css'
 import Link from 'next/link'
 
 function Marketplace({ Component, pageProps }) {
