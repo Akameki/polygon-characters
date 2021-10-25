@@ -284,7 +284,7 @@ export default function CreateItem() {
                 <div>
                   {!isImageReady && (
                     <div>
-                      <p>'loading image...'</p>
+                      <p>loading image...</p>
                       <div className="loader"></div>
                     </div>
                   )}
