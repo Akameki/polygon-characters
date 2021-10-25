@@ -14,7 +14,7 @@ import Market from '../artifacts/contracts/Market.sol/NFTMarket.json'
 
 import { initializeApp, getApps } from "firebase/app"
 import { getStorage, ref, listAll } from "firebase/storage";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, limit, where } from "firebase/firestore";
 
 export default function Home() {
   const [nfts, setNfts] = useState([])
@@ -22,7 +22,16 @@ export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [address, setAddress] = useState('')
   const router = useRouter()
-
+  function groupBy(arr, criteria) {
+    const newObj = arr.reduce(function (acc, currentValue) {
+      if (!acc[currentValue[criteria]]) {
+        acc[currentValue[criteria]] = [];
+      }
+      acc[currentValue[criteria]].push(currentValue);
+      return acc;
+    }, {});
+    return newObj;
+  }
   // For now, 'eth_accounts' will continue to always return an array
   function handleAccountsChanged(accounts) {
     console.log("****accounts,", accounts)
@@ -79,22 +88,49 @@ export default function Home() {
         const db = getFirestore(app)
         //const auth = getAuth(app)
 
-        const querySnapshot = await getDocs(collection(db, "characters"));
+        const nounsRef = collection(db, "characters");
+        const q = query(nounsRef,
+          orderBy("seller"),
+          orderBy("createdAt", "desc"));
+
+        const querySnapshot = await getDocs(q);
         const items = [];
         querySnapshot.forEach((doc) => {
-          let character = doc.data();
+          let data = doc.data();
           let item = {
             id: doc.id,
-            price: character.price,
-            image: character.fileUrl,
-            name: character.name,
-            description: character.description,
-            sold: character.sold
+            price: data.price,
+            text: data.text,
+            image: data.fileUrl,
+            seller: data.seller,
+            sold: data.sold
           }
-          if (!item.sold) {items.push(item)}
-        })
 
-        setNfts(items)
+          items.push(item)
+        })
+        let forSaleItems = []
+        let groupBySellerItems = groupBy(items, "seller")
+        Object.keys(groupBySellerItems).forEach((seller) => {
+          let sellerItems = groupBySellerItems[seller]
+          let maxSoldPrice = sellerItems.reduce((prev, current) => {
+            if (current.sold) {
+              return Math.max(prev, current.price)
+            } else {
+              return prev
+            }
+          }, 0)
+          let descNotSoldItem = sellerItems.reduce((prev, current) => {
+            return current.sold ? prev : current
+          }, sellerItems[0])
+          forSaleItems.push(descNotSoldItem)
+          if (descNotSoldItem.price < maxSoldPrice + 1) {
+            descNotSoldItem.price = maxSoldPrice + 1
+            descNotSoldItem.priceDesc = `${maxSoldPrice} + 1`
+          } else {
+            descNotSoldItem.priceDesc = `${descNotSoldItem.price}`
+          }
+        })
+        setNfts(forSaleItems)
         setLoadingState('loaded')
       }
     loadFirebase()
@@ -155,12 +191,13 @@ export default function Home() {
     // Set the "capital" field of the city 'DC'
     await updateDoc(characterRef, {
       sold: true,
-      owner: address
+      owner: address,
+      price: nft.price
     });
     setShowModal(false)
     //loadFirebase()
 
-    router.push('/my-collection')
+    router.push('/my-purchase')
   }
   async function buyNft(nft) {
     setShowModal(true)
@@ -192,34 +229,38 @@ export default function Home() {
   )
   return (
     <div>
-    <div className="p-4">
-      <h1 className="text-2xl py-2">Public Home - where creative work are put on display for purchase.</h1>
-    </div>
-    <div className="flex justify-center">
-      <div className="px-4" style={{ maxWidth: '1600px' }}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-          {
-            nfts.map((nft, i) => (
-              <div key={i} className="border shadow rounded-xl overflow-hidden bg-black">
-                <Image src={nft.image} width="325" height="475" alt="NFT on display" />
-                <div className="p-4 bg-white">
-                  <p style={{ height: '64px' }} className="text-2xl font-semibold">{nft.name}</p>
-                  <div style={{ height: '70px', overflow: 'hidden' }}>
-                    <p className="text-gray-400">{nft.description}</p>
+      <div className="header">{address}</div>
+      <div className="p-4">
+        <h1 className="text-2xl py-2">Public Home - where creative work are put on display for purchase.</h1>
+      </div>
+      <div className="flex justify-center">
+        <div className="px-4" style={{ maxWidth: '1600px' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
+            {
+              nfts.map((nft, i) => (
+                <div key={i} className="border shadow rounded-xl overflow-hidden bg-black">
+                  <Image src={nft.image} width="325" height="475" alt="NFT on display" />
+                  <div className="p-4 bg-white">
+                    <p style={{ height: '64px' }} className="text-2xl font-semibold">{nft.name}</p>
+                    <div style={{ height: '70px', overflow: 'hidden' }}>
+                      <p className="text-gray-400">{nft.description}</p>
+                    </div>
+                    <div style={{ height: '70px', overflowWrap: 'break-word' }}>
+                      <p className="text-gray-400">{nft.seller}</p>
+                    </div>
                   </div>
+                    <div className="p-4 bg-black">
+                      <p className="text-2xl mb-4 font-bold text-white">{nft.priceDesc} MATIC</p>
+                      <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => buyFirebase(nft)}>
+                        Buy
+                      </button>
+                    </div>
                 </div>
-                  <div className="p-4 bg-black">
-                    <p className="text-2xl mb-4 font-bold text-white">{nft.price} MATIC</p>
-                    <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => buyFirebase(nft)}>
-                      Buy
-                    </button>
-                  </div>
-              </div>
-            ))
-          }
+              ))
+            }
+          </div>
         </div>
       </div>
-    </div>
     </div>
   )
 }

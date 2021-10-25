@@ -27,10 +27,10 @@ export default function CreateItem() {
   const [formInput, updateFormInput] = useState({ price: '', name: '', description: '' })
   const router = useRouter()
   const [address, setAddress] = useState('')
+  const [isImageReady, setIsImageReady] = useState(false);
 
   // For now, 'eth_accounts' will continue to always return an array
   function handleAccountsChanged(accounts) {
-    console.log("****accounts,", accounts)
     if (accounts.length === 0) {
       // MetaMask is locked or the user has not connected any accounts
       console.log('Please connect to MetaMask.');
@@ -41,7 +41,6 @@ export default function CreateItem() {
     }
   }
   function connect() {
-    console.log("****connect");
     window.ethereum
       .request({ method: 'eth_requestAccounts' })
       .then(handleAccountsChanged)
@@ -62,8 +61,8 @@ export default function CreateItem() {
       //mounted = false
     }
   }, [])
-
   async function onChange(e) {
+    setFileUrl(null)
     setShowModalIPFS(true)
     const file = e.target.files[0]
     try {
@@ -177,14 +176,14 @@ export default function CreateItem() {
       //const auth = getAuth(app)
 
       const colRef = collection(db, 'characters')
-
       addDoc(colRef, {
         name: formInput.name,
         description: formInput.description,
         price: formInput.price,
         fileUrl: fileUrl,
         seller: address,
-        owner: address
+        owner: address,
+        createdAt: Date.now()
       });
     } catch(err){
       if (!/already exists/.test(err.message)) {
@@ -193,7 +192,14 @@ export default function CreateItem() {
     setShowModalMint(false)
     router.push('/')
   }
-
+  const onLoadCompleteCallBack = (e)=>{
+     setIsImageReady(true)
+     console.log("****onLoadCompleteCallBack")
+  }
+  const onLoadCallBack = (e)=>{
+     setIsImageReady(false)
+     console.log("****onLoadCallBack")
+  }
   async function createSale(url) {
     setShowModalMint(true)
     const web3Modal = new Web3Modal()
@@ -225,54 +231,74 @@ export default function CreateItem() {
     <div className="p-4">
       <p>Please wait while we upload your character. We will close this popup automatically when ready ...</p>
       <p>{fileUploadProgress}</p>
+      <div className="loader"></div>
     </div>
   )
   if (showModalMint) return (
     <div className="p-4">
       <p>Please wait.</p>
       <p>We will close this popup automatically when ready.</p>
+      <div className="loader"></div>
     </div>
   )
   return (
     <div>
-    <div className="p-4">
-      <h2 className="text-2xl py-2">Please use the Choose File button to upload your character.</h2>
-    </div>
-    <div className="flex justify-center">
-      <div className="w-1/2 flex flex-col pb-12">
-        <input
-          placeholder="Character Name"
-          className="mt-8 border rounded p-4"
-          onChange={e => updateFormInput({ ...formInput, name: e.target.value })}
-        />
-        <textarea
-          placeholder="Character Description"
-          className="mt-2 border rounded p-4"
-          onChange={e => updateFormInput({ ...formInput, description: e.target.value })}
-        />
-        <input
-          placeholder="Character Price in MATIC"
-          className="mt-2 border rounded p-4"
-          onChange={e => updateFormInput({ ...formInput, price: e.target.value })}
-        />
-        <input
-          type="file"
-          name="Asset"
-          className="my-4"
-          onChange={onChange}
-        />
-        {
-          fileUrl && (
-            <div>
-            <Image className="rounded mt-4" width="175" height="350" src={fileUrl} alt="uploaded file" />
-            <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={createFirebase}>
-              Create Digital Character
-            </button>
-            </div>
-          )
-        }
+      <div className="header">{address}</div>
+      <div className="p-4">
+        <h2 className="text-2xl py-2">Please use the Choose File button to upload your character.</h2>
       </div>
-    </div>
+      <div className="flex justify-center">
+        <div className="w-1/2 flex flex-col pb-12">
+          <input
+            placeholder="Character Name"
+            className="mt-8 border rounded p-4"
+            value={formInput.name}
+            onChange={e => updateFormInput({ ...formInput, name: e.target.value })}
+          />
+          <textarea
+            placeholder="Character Description"
+            className="mt-2 border rounded p-4"
+            value={formInput.description}
+            onChange={e => updateFormInput({ ...formInput, description: e.target.value })}
+          />
+          <input
+            placeholder="Character Price in MATIC"
+            className="mt-2 border rounded p-4"
+            value={formInput.price}
+            onChange={(event) => {
+              if (isFinite(event.target.value)) {
+                // UPDATE YOUR STATE (i am using formik)
+                updateFormInput({ ...formInput, price: event.target.value});
+              }
+            }}
+          />
+          <input
+            type="file"
+            name="Asset"
+            className="my-4"
+            onChange={onChange}
+          />
+          {
+            <div>
+              {fileUrl && (
+                <div>
+                  {!isImageReady && (
+                    <div>
+                      <p>'loading image...'</p>
+                      <div className="loader"></div>
+                    </div>
+                  )}
+                  <Image onLoad={onLoadCallBack} onLoadingComplete={onLoadCompleteCallBack} className="rounded mt-4" width="175" height="350" src={fileUrl} alt="uploaded file" />
+                </div>
+              )}
+              {isImageReady &&
+                <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={createFirebase}>
+                  Create Digital Character
+                </button>}
+            </div>
+          }
+        </div>
+      </div>
     </div>
   )
 }

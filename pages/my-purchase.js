@@ -131,9 +131,7 @@ export default function MyCollection() {
       items.push(item)
     })
 
-    const myItems = items.filter(i => i.seller === address)
     const bougntItems = items.filter(i => i.owner === address && i.seller !== address)
-    setNfts(myItems)
     setBought(bougntItems)
     setLoadingState('loaded')
   }
@@ -262,50 +260,20 @@ export default function MyCollection() {
   )
   return (
     <div>
+      <div className="header">{address}</div>
       <div className="p-4">
-        <h2 className="text-2xl py-2">My Collection - where you can find work that you have either uploaded or purchased.</h2>
+        <h2 className="text-2xl py-2">My Purchase - where you can find work that you have purchased.</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-          {
-            nfts.map((nft, i) => (
-              <div key={i} className="border shadow rounded-xl overflow-hidden  bg-black">
-                <Image src={nft.image} className="rounded" width="325" height="475" alt="NFT purchased" />
-                {nft.sold ?
-                  (<div className="p-4 bg-black">
-                    <p className="text-2xl font-bold text-red-500">Sold - {nft.price} MATIC</p>
-                    <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
-                      Mint
-                    </button>
-                  </div>)
-                  :
-
-                (<div className="p-4 bg-black">
-                  <p className="text-2xl font-bold text-white">Price - {nft.price} MATIC</p>
-                  <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
-                    Mint
-                  </button>
-                </div>)}
-              </div>
-            ))
-          }
           {
             bought.map((nft, i) => (
               <div key={i} className="border shadow rounded-xl overflow-hidden bg-black">
                 <Image src={nft.image} className="rounded" width="325" height="475" alt="NFT purchased" />
-                {nft.minted ? (
-                  <div className="p-4 bg-black">
-                    <p className="text-2xl font-bold text-red-500">Minted - {nft.price} MATIC</p>
-                    <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
-                      Mint
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-black">
-                    <p className="text-2xl font-bold text-red-500">Bought - {nft.price} MATIC</p>
-                    <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
-                      Mint
-                    </button>
-                  </div>
-                )}
+                <div className="p-4 bg-black">
+                  <p className="text-2xl font-bold text-red-500">Minted - {nft.price} MATIC</p>
+                  <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
+                    Mint
+                  </button>
+                </div>
               </div>
             ))
           }
