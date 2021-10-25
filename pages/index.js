@@ -91,7 +91,7 @@ export default function Home() {
         const nounsRef = collection(db, "characters");
         const q = query(nounsRef,
           orderBy("seller"),
-          orderBy("createdAt", "desc"));
+          orderBy("createdAt", "asc"));
 
         const querySnapshot = await getDocs(q);
         const items = [];
@@ -100,7 +100,7 @@ export default function Home() {
           let item = {
             id: doc.id,
             price: data.price,
-            text: data.text,
+            name: data.name,
             image: data.fileUrl,
             seller: data.seller,
             sold: data.sold
