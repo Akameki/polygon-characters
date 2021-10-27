@@ -4,6 +4,7 @@ import axios from 'axios'
 import Web3Modal from "web3modal"
 import Image from 'next/image'
 
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
   nftaddress, nftmarketaddress
@@ -21,6 +22,7 @@ export default function Home() {
   const [loadingState, setLoadingState] = useState('not-loaded')
   const [showModal, setShowModal] = useState(false);
   const [address, setAddress] = useState('')
+  const [showModalMessage, setShowModalMessage] = useState('')
   const router = useRouter()
   function groupBy(arr, criteria) {
     const newObj = arr.reduce(function (acc, currentValue) {
@@ -44,24 +46,25 @@ export default function Home() {
       //getMETT(accounts[0]);
     }
   }
-  function connect() {
-    console.log("****connect");
-    window.ethereum
-      .request({ method: 'eth_requestAccounts' })
-      .then(handleAccountsChanged)
-      .catch((err) => {
-        if (err.code === 4001) {
-          // EIP-1193 userRejectedRequest error
-          // If this happens, the user rejected the connection request.
-          console.log('Please connect to MetaMask.');
-        } else {
-          console.error(err);
-        }
-      });
-  }
   useEffect(() => {
-    connect()
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    if (window.ethereum) {
+      window.ethereum
+        .request({ method: 'eth_requestAccounts' })
+        .then(handleAccountsChanged)
+        .catch((err) => {
+          if (err.code === 4001) {
+            // EIP-1193 userRejectedRequest error
+            // If this happens, the user rejected the connection request.
+            console.log('Please connect to MetaMask.');
+          } else {
+            console.error(err);
+          }
+        });
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+    } else {
+      console.log("Non-Ethereum browser detected. You should consider installing MetaMask.");
+      setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
+    }
     return function cleanup() {
       //mounted = false
     }
@@ -103,7 +106,8 @@ export default function Home() {
             name: data.name,
             image: data.fileUrl,
             seller: data.seller,
-            sold: data.sold
+            sold: data.sold,
+            description: data.description,
           }
 
           items.push(item)
@@ -119,9 +123,10 @@ export default function Home() {
               return prev
             }
           }, 0)
+          let onSaleIndex = (sellerItems.length - 1) % ((new Date()).getHours())
           let descNotSoldItem = sellerItems.reduce((prev, current) => {
             return current.sold ? prev : current
-          }, sellerItems[0])
+          }, sellerItems[onSaleIndex])
           forSaleItems.push(descNotSoldItem)
           if (descNotSoldItem.price < maxSoldPrice + 1) {
             descNotSoldItem.price = maxSoldPrice + 1
@@ -171,33 +176,37 @@ export default function Home() {
     setLoadingState('loaded')
   }
   async function buyFirebase(nft) {
-    setShowModal(true)
-    const firebaseConfig = {
-      // INSERT YOUR OWN CONFIG HERE
-      apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-      authDomain: "pay-a-vegan.firebaseapp.com",
-      databaseURL: "https://pay-a-vegan.firebaseio.com",
-      projectId: "pay-a-vegan",
-      storageBucket: "pay-a-vegan.appspot.com",
-      messagingSenderId: "587888386485",
-      appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-      measurementId: "G-MGJK6GF9YW"
-    };
+    if (!window.ethereum) {
+      setShowModalMessage("Unable to purchase without a crypto wallet. Please refresh screen to try again.")
+    } else {
+      setShowModal(true)
+      const firebaseConfig = {
+        // INSERT YOUR OWN CONFIG HERE
+        apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
+        authDomain: "pay-a-vegan.firebaseapp.com",
+        databaseURL: "https://pay-a-vegan.firebaseio.com",
+        projectId: "pay-a-vegan",
+        storageBucket: "pay-a-vegan.appspot.com",
+        messagingSenderId: "587888386485",
+        appId: "1:587888386485:web:3a81137924d19cbe2439fc",
+        measurementId: "G-MGJK6GF9YW"
+      };
 
-    const app = initializeApp(firebaseConfig)
+      const app = initializeApp(firebaseConfig)
 
-    const db = getFirestore(app)
-    const characterRef = doc(db, "characters", nft.id);
-    // Set the "capital" field of the city 'DC'
-    await updateDoc(characterRef, {
-      sold: true,
-      owner: address,
-      price: nft.price
-    });
-    setShowModal(false)
-    //loadFirebase()
+      const db = getFirestore(app)
+      const characterRef = doc(db, "characters", nft.id);
+      // Set the "capital" field of the city 'DC'
+      await updateDoc(characterRef, {
+        sold: true,
+        owner: address,
+        price: nft.price
+      });
+      setShowModal(false)
+      //loadFirebase()
 
-    router.push('/my-purchase')
+      router.push('/my-purchase')
+    }
   }
   async function buyNft(nft) {
     setShowModal(true)
@@ -227,40 +236,59 @@ export default function Home() {
       <p>We will move your purchase to your personal Collection page.</p>
     </div>
   )
+  if (showModalMessage) return (
+    <div className="p-4">
+      <div className="header">{address}</div>
+      <p>{showModalMessage}</p>
+    </div>
+  )
   return (
     <div>
       <div className="header">{address}</div>
-      <div className="p-4">
-        <h1 className="text-2xl py-2">Public Home - where creative work are put on display for purchase.</h1>
-      </div>
-      <div className="flex justify-center">
-        <div className="px-4" style={{ maxWidth: '1600px' }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-            {
-              nfts.map((nft, i) => (
-                <div key={i} className="border shadow rounded-xl overflow-hidden bg-black">
-                  <Image src={nft.image} width="325" height="475" alt="NFT on display" />
-                  <div className="p-4 bg-white">
-                    <p style={{ height: '64px' }} className="text-2xl font-semibold">{nft.name}</p>
-                    <div style={{ height: '70px', overflow: 'hidden' }}>
-                      <p className="text-gray-400">{nft.description}</p>
-                    </div>
-                    <div style={{ height: '70px', overflowWrap: 'break-word' }}>
-                      <p className="text-gray-400">{nft.seller}</p>
+      <main>
+        <section className="py-5 text-center container">
+          <div className="row py-lg-5">
+            <div className="col-lg-6 col-md-8 mx-auto">
+              <h1 className="fw-light">Public Home</h1>
+              <p className="lead text-muted">where creative work are put on display for purchase.</p>
+            </div>
+          </div>
+        </section>
+        <div className="album py-5 bg-light">
+          <div className="container">
+            <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+              {
+                nfts.map((nft, i) => (
+                  <div key={i} className="col">
+                    <div className="card shadow-sm">
+                      <div>
+                        <Image src={nft.image} alt="NFT on display" width="100%" height="100%"  />
+                      </div>
+                      <div className="card-body">
+                      <h5 className="card-title">{nft.name}</h5>
+                      <p className="card-text">{nft.description}</p>
+                      <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="btn-group">
+                          <Link href={{
+                            pathname: "/by-artist",
+                            query: {authorAddress: nft.seller}
+                          }} >
+                            <button type="button" className="btn btn-sm btn-outline-secondary">View</button>
+                          </Link>
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => buyFirebase(nft)}>Buy</button>
+                        </div>
+                        <small className="text-muted">{nft.priceDesc} MATIC</small>
+                      </div>
+                      </div>
                     </div>
                   </div>
-                    <div className="p-4 bg-black">
-                      <p className="text-2xl mb-4 font-bold text-white">{nft.priceDesc} MATIC</p>
-                      <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => buyFirebase(nft)}>
-                        Buy
-                      </button>
-                    </div>
-                </div>
-              ))
-            }
+                ))
+              }
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

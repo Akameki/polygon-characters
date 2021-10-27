@@ -59,37 +59,25 @@ export default function MyCollection() {
   // any buttons the user can click to initiate the request.
   // MetaMask will reject any additional requests while the first is still
   // pending.
-  function connect() {
-    window.ethereum
-      .request({ method: 'eth_requestAccounts' })
-      .then(handleAccountsChanged)
-      .catch((err) => {
-        if (err.code === 4001) {
-          // EIP-1193 userRejectedRequest error
-          // If this happens, the user rejected the connection request.
-          console.log('Please connect to MetaMask.');
-        } else {
-          console.error(err);
-        }
-      });
-  }
-
   useEffect(() => {
-    // window.ethereum
-    // .request({ method: 'eth_accounts' })
-    // .then(handleAccountsChanged)
-    // .catch((err) => {
-    //   // Some unexpected error.
-    //   // For backwards compatibility reasons, if no accounts are available,
-    //   // eth_accounts will return an empty array.
-    //   console.error(err);
-    // });
-    connect();
-
-    // Note that this event is emitted on page load.
-    // If the array of accounts is non-empty, you're already
-    // connected.
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    if (window.ethereum) {
+      window.ethereum
+        .request({ method: 'eth_requestAccounts' })
+        .then(handleAccountsChanged)
+        .catch((err) => {
+          if (err.code === 4001) {
+            // EIP-1193 userRejectedRequest error
+            // If this happens, the user rejected the connection request.
+            console.log('Please connect to MetaMask.');
+          } else {
+            console.error(err);
+          }
+        });
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+    } else {
+      console.log("Non-Ethereum browser detected. You should consider installing MetaMask.");
+      setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
+    }
     return function cleanup() {
       //mounted = false
     }
@@ -243,7 +231,12 @@ export default function MyCollection() {
     setLoadingState('loaded')
   }
   if (!address) return (<h1 className="py-10 px-20 text-3xl">Unable to connect to any crypto wallet.</h1>)
-  if (loadingState === 'loaded' && !nfts.length && !bought.length) return (<h1 className="py-10 px-20 text-3xl">No assets created</h1>)
+  if (loadingState === 'loaded' && !nfts.length && !bought.length) return (
+    <div className="p-4">
+      <div className="header">{address}</div>
+      <h1 className="py-10 px-20 text-3xl">No assets purchased</h1>
+    </div>
+  )
   if (showModal) return (
     <div className="p-4">
       <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>
@@ -261,24 +254,46 @@ export default function MyCollection() {
   return (
     <div>
       <div className="header">{address}</div>
-      <div className="p-4">
-        <h2 className="text-2xl py-2">My Purchase - where you can find work that you have purchased.</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-          {
-            bought.map((nft, i) => (
-              <div key={i} className="border shadow rounded-xl overflow-hidden bg-black">
-                <Image src={nft.image} className="rounded" width="325" height="475" alt="NFT purchased" />
-                <div className="p-4 bg-black">
-                  <p className="text-2xl font-bold text-red-500">Minted - {nft.price} MATIC</p>
-                  <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={() => mintFirebase(nft)}>
-                    Mint
-                  </button>
-                </div>
-              </div>
-            ))
-          }
+      <main>
+        <section className="py-5 text-center container">
+          <div className="row py-lg-5">
+            <div className="col-lg-6 col-md-8 mx-auto">
+              <h1 className="fw-light">My Purchase</h1>
+              <p className="lead text-muted">where you can find work that you have purchased.</p>
+            </div>
+          </div>
+        </section>
+        <div className="album py-5 bg-light">
+          <div className="container">
+            <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+              {
+                bought.map((nft, i) => (
+                  <div key={i} className="col">
+                    <div className="card shadow-sm">
+                      <div>
+                        <Image src={nft.image} alt="NFT on display" width="100%" height="100%"  />
+                      </div>
+                      <div className="card-body">
+                      <h5 className="card-title">{nft.name}</h5>
+                      <p className="card-text">{nft.description}</p>
+                      <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="btn-group">
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => mintFirebase(nft)}>
+                            Mint
+                          </button>
+                        </div>
+                        <small className="text-muted">Minted - {nft.price} MATIC</small>
+                      </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

@@ -40,23 +40,25 @@ export default function CreateItem() {
       //getMETT(accounts[0]);
     }
   }
-  function connect() {
-    window.ethereum
-      .request({ method: 'eth_requestAccounts' })
-      .then(handleAccountsChanged)
-      .catch((err) => {
-        if (err.code === 4001) {
-          // EIP-1193 userRejectedRequest error
-          // If this happens, the user rejected the connection request.
-          console.log('Please connect to MetaMask.');
-        } else {
-          console.error(err);
-        }
-      });
-  }
   useEffect(() => {
-    connect()
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    if (window.ethereum) {
+      window.ethereum
+        .request({ method: 'eth_requestAccounts' })
+        .then(handleAccountsChanged)
+        .catch((err) => {
+          if (err.code === 4001) {
+            // EIP-1193 userRejectedRequest error
+            // If this happens, the user rejected the connection request.
+            console.log('Please connect to MetaMask.');
+          } else {
+            console.error(err);
+          }
+        });
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+    } else {
+      console.log("Non-Ethereum browser detected. You should consider installing MetaMask.");
+      setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
+    }
     return function cleanup() {
       //mounted = false
     }

@@ -1,5 +1,8 @@
 import '../styles/globals.css'
 import '../styles/spinner.css'
+import '../styles/album.css'
+
+import "../styles/assets/dist/css/bootstrap.min.css"
 import Link from 'next/link'
 
 function Marketplace({ Component, pageProps }) {
@@ -18,9 +21,9 @@ function Marketplace({ Component, pageProps }) {
               Sell Digital Character
             </a>
           </Link>
-          <Link href="/my-creation">
+          <Link href="/by-artist">
             <a className="mr-6 text-pink-500">
-              My Creation
+              By Artist
             </a>
           </Link>
           <Link href="/my-purchase">
