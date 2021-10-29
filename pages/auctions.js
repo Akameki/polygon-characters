@@ -430,7 +430,7 @@ export default function MyCollection() {
         ) : (
           <div>
             <div className="p-4">
-              <h2 className="text-2xl">Let's countdown to the beginning of the next auction.</h2>
+              <h2 className="text-2xl">{"Let's countdown to the beginning of the next auction."}</h2>
               <Clock endTime={endTime(6)} trigger={() => startAuction()} />
             </div>
           </div>

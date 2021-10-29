@@ -267,7 +267,7 @@ export default function Home() {
         </section>
           <div>
             <div className="p-4">
-              <h2 className="text-2xl">Let's countdown to next items.</h2>
+              <h2 className="text-2xl">{"Let's countdown to next items."}</h2>
               <Clock endTime={endTime(6)} trigger={() => nextThemeItem()} />
             </div>
           </div>
