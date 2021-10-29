@@ -28,6 +28,7 @@ export default function CreateItem() {
   const router = useRouter()
   const [address, setAddress] = useState('')
   const [isImageReady, setIsImageReady] = useState(false);
+  const [optionsState, setOptionsState] = useState('')
 
   // For now, 'eth_accounts' will continue to always return an array
   function handleAccountsChanged(accounts) {
@@ -56,7 +57,6 @@ export default function CreateItem() {
         });
       window.ethereum.on('accountsChanged', handleAccountsChanged);
     } else {
-      console.log("Non-Ethereum browser detected. You should consider installing MetaMask.");
       setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
     }
     return function cleanup() {
@@ -133,6 +133,9 @@ export default function CreateItem() {
       console.log('Error uploading file: ', error)
     }
   }
+  function handleChange(event) {
+    setOptionsState(event.target.value);
+  }
   async function createMarket() {
     const { name, description, price } = formInput
     if (!name || !description || !price || !fileUrl) return
@@ -185,6 +188,7 @@ export default function CreateItem() {
         fileUrl: fileUrl,
         seller: address,
         owner: address,
+        theme: optionsState,
         createdAt: Date.now()
       });
     } catch(err){
@@ -196,11 +200,9 @@ export default function CreateItem() {
   }
   const onLoadCompleteCallBack = (e)=>{
      setIsImageReady(true)
-     console.log("****onLoadCompleteCallBack")
   }
   const onLoadCallBack = (e)=>{
      setIsImageReady(false)
-     console.log("****onLoadCallBack")
   }
   async function createSale(url) {
     setShowModalMint(true)
@@ -251,6 +253,14 @@ export default function CreateItem() {
       </div>
       <div className="flex justify-center">
         <div className="w-1/2 flex flex-col pb-12">
+          <select value={optionsState} onChange={handleChange}>
+            <option value="" disabled default>Select your character theme</option>
+            <option value="Stone Age">Stone Age</option>
+            <option value="Space">Space</option>
+            <option value="Evil and Justice">Evil and Justice</option>
+            <option value="Courage and Perseverance">Courage and Perseverance</option>
+            <option value="Crypto">Crypto</option>
+          </select>
           <input
             placeholder="Character Name"
             className="mt-8 border rounded p-4"

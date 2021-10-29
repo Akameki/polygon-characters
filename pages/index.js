@@ -10,6 +10,7 @@ import {
   nftaddress, nftmarketaddress
 } from '../config'
 
+import Clock from './Clock'
 import NFT from '../artifacts/contracts/NFT.sol/NFT.json'
 import Market from '../artifacts/contracts/Market.sol/NFTMarket.json'
 
@@ -24,6 +25,8 @@ export default function Home() {
   const [address, setAddress] = useState('')
   const [showModalMessage, setShowModalMessage] = useState('')
   const router = useRouter()
+  const [onSaleIndex, setOnSaleIndex] = useState(0)
+
   function groupBy(arr, criteria) {
     const newObj = arr.reduce(function (acc, currentValue) {
       if (!acc[currentValue[criteria]]) {
@@ -36,7 +39,6 @@ export default function Home() {
   }
   // For now, 'eth_accounts' will continue to always return an array
   function handleAccountsChanged(accounts) {
-    console.log("****accounts,", accounts)
     if (accounts.length === 0) {
       // MetaMask is locked or the user has not connected any accounts
       console.log('Please connect to MetaMask.');
@@ -62,88 +64,97 @@ export default function Home() {
         });
       window.ethereum.on('accountsChanged', handleAccountsChanged);
     } else {
-      console.log("Non-Ethereum browser detected. You should consider installing MetaMask.");
       setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
     }
     return function cleanup() {
       //mounted = false
     }
   }, [])
+  function endTime(targetDay) {
+    return Math.floor(Date.now() / 1000) + 10
+  }
+  async function loadFirebase() {
+    const firebaseConfig = {
+      // INSERT YOUR OWN CONFIG HERE
+      apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
+      authDomain: "pay-a-vegan.firebaseapp.com",
+      databaseURL: "https://pay-a-vegan.firebaseio.com",
+      projectId: "pay-a-vegan",
+      storageBucket: "pay-a-vegan.appspot.com",
+      messagingSenderId: "587888386485",
+      appId: "1:587888386485:web:3a81137924d19cbe2439fc",
+      measurementId: "G-MGJK6GF9YW"
+    };
+
+    const app = initializeApp(firebaseConfig)
+
+    const db = getFirestore(app)
+    //const auth = getAuth(app)
+
+    const nounsRef = collection(db, "characters");
+    const q = query(nounsRef,
+      orderBy("theme"),
+      orderBy("createdAt", "asc"));
+
+    const querySnapshot = await getDocs(q);
+    const items = [];
+    querySnapshot.forEach((doc) => {
+      let data = doc.data();
+      let item = {
+        id: doc.id,
+        price: data.price,
+        name: data.name,
+        image: data.fileUrl,
+        seller: data.seller,
+        sold: data.sold,
+        description: data.description,
+        theme: data.theme
+      }
+
+      items.push(item)
+    })
+    let showcaseItems = []
+    let groupByItems = groupBy(items, "theme")
+    Object.keys(groupByItems).forEach((theme) => {
+      let saleItems = groupByItems[theme]
+      let maxSoldPrice = saleItems.reduce((prev, current) => {
+        if (current.sold) {
+          return Math.max(prev, current.price)
+        } else {
+          return prev
+        }
+      }, 0)
+      //let onSaleIndex = (saleItems.length - 1) % ((new Date()).getHours())
+
+      // let descNotSoldItem = saleItems.reduce((prev, current) => {
+      //   return current.sold ? prev : current
+      // }, saleItems[onSaleIndex % (saleItems.length - 1)])
+      let descNotSoldItem = saleItems[onSaleIndex % (saleItems.length - 1)]
+      showcaseItems.push(descNotSoldItem)
+      if (descNotSoldItem.price < maxSoldPrice + 1) {
+        descNotSoldItem.price = maxSoldPrice + 1
+        descNotSoldItem.priceDesc = `${maxSoldPrice} + 1`
+      } else {
+        descNotSoldItem.priceDesc = `${descNotSoldItem.price}`
+      }
+    })
+    setNfts(showcaseItems)
+    setLoadingState('loaded')
+  }
 
   useEffect(() => {
     //loadNFTs()
 
-      async function loadFirebase() {
-        const firebaseConfig = {
-          // INSERT YOUR OWN CONFIG HERE
-          apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-          authDomain: "pay-a-vegan.firebaseapp.com",
-          databaseURL: "https://pay-a-vegan.firebaseio.com",
-          projectId: "pay-a-vegan",
-          storageBucket: "pay-a-vegan.appspot.com",
-          messagingSenderId: "587888386485",
-          appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-          measurementId: "G-MGJK6GF9YW"
-        };
-
-        const app = initializeApp(firebaseConfig)
-
-        const db = getFirestore(app)
-        //const auth = getAuth(app)
-
-        const nounsRef = collection(db, "characters");
-        const q = query(nounsRef,
-          orderBy("seller"),
-          orderBy("createdAt", "asc"));
-
-        const querySnapshot = await getDocs(q);
-        const items = [];
-        querySnapshot.forEach((doc) => {
-          let data = doc.data();
-          let item = {
-            id: doc.id,
-            price: data.price,
-            name: data.name,
-            image: data.fileUrl,
-            seller: data.seller,
-            sold: data.sold,
-            description: data.description,
-          }
-
-          items.push(item)
-        })
-        let forSaleItems = []
-        let groupBySellerItems = groupBy(items, "seller")
-        Object.keys(groupBySellerItems).forEach((seller) => {
-          let sellerItems = groupBySellerItems[seller]
-          let maxSoldPrice = sellerItems.reduce((prev, current) => {
-            if (current.sold) {
-              return Math.max(prev, current.price)
-            } else {
-              return prev
-            }
-          }, 0)
-          let onSaleIndex = (sellerItems.length - 1) % ((new Date()).getHours())
-          let descNotSoldItem = sellerItems.reduce((prev, current) => {
-            return current.sold ? prev : current
-          }, sellerItems[onSaleIndex])
-          forSaleItems.push(descNotSoldItem)
-          if (descNotSoldItem.price < maxSoldPrice + 1) {
-            descNotSoldItem.price = maxSoldPrice + 1
-            descNotSoldItem.priceDesc = `${maxSoldPrice} + 1`
-          } else {
-            descNotSoldItem.priceDesc = `${descNotSoldItem.price}`
-          }
-        })
-        setNfts(forSaleItems)
-        setLoadingState('loaded')
-      }
     loadFirebase()
     return function cleanup() {
       //mounted = false
     }
   }, [])
 
+  async function nextThemeItem() {
+    setOnSaleIndex(onSaleIndex + 1)
+    loadFirebase()
+  }
   async function loadNFTs() {
       const web3Modal = new Web3Modal({
         network: "mainnet",
@@ -250,10 +261,16 @@ export default function Home() {
           <div className="row py-lg-5">
             <div className="col-lg-6 col-md-8 mx-auto">
               <h1 className="fw-light">Public Home</h1>
-              <p className="lead text-muted">where creative work are put on display for purchase.</p>
+              <p className="lead text-muted">From Monday - Friday, we showcase one item from each theme.</p>
             </div>
           </div>
         </section>
+          <div>
+            <div className="p-4">
+              <h2 className="text-2xl">Let's countdown to next items.</h2>
+              <Clock endTime={endTime(6)} trigger={() => nextThemeItem()} />
+            </div>
+          </div>
         <div className="album py-5 bg-light">
           <div className="container">
             <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
@@ -261,25 +278,27 @@ export default function Home() {
                 nfts.map((nft, i) => (
                   <div key={i} className="col">
                     <div className="card shadow-sm">
+                      <div className="card-header text-center">
+                        {nft.theme}
+                      </div>
                       <div>
                         <Image src={nft.image} alt="NFT on display" width="100%" height="100%"  />
                       </div>
                       <div className="card-body">
-                      <h5 className="card-title">{nft.name}</h5>
-                      <p className="card-text">{nft.description}</p>
-                      <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div className="btn-group">
-                          <Link href={{
-                            pathname: "/by-artist",
-                            query: {authorAddress: nft.seller}
-                          }} >
-                            <button type="button" className="btn btn-sm btn-outline-secondary">View</button>
-                          </Link>
-                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => buyFirebase(nft)}>Buy</button>
+                        <h5 className="card-title">{nft.name}</h5>
+                        <p className="card-text">{nft.description}</p>
+                        <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div className="btn-group">
+                            <Link href={{
+                              pathname: "/themes",
+                              query: {theme: nft.theme}
+                            }} >
+                              <button type="button" className="btn btn-sm btn-outline-secondary">View</button>
+                            </Link>
+                          </div>
+                          <small className="text-muted">{nft.priceDesc} MATIC</small>
                         </div>
-                        <small className="text-muted">{nft.priceDesc} MATIC</small>
-                      </div>
                       </div>
                     </div>
                   </div>

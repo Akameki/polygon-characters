@@ -21,14 +21,14 @@ function Marketplace({ Component, pageProps }) {
               Sell Digital Character
             </a>
           </Link>
-          <Link href="/by-artist">
+          <Link href="/themes">
             <a className="mr-6 text-pink-500">
-              By Artist
+              Themes
             </a>
           </Link>
-          <Link href="/my-purchase">
+          <Link href="/auctions">
             <a className="mr-6 text-pink-500">
-              My Purchase
+              Auctions
             </a>
           </Link>
         </div>

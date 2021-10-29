@@ -6,15 +6,17 @@ import Image from 'next/image'
 import {
   nftmarketaddress, nftaddress
 } from '../config'
+import { useRouter } from 'next/router'
 
+import Link from 'next/link'
 import Market from '../artifacts/contracts/Market.sol/NFTMarket.json'
 import NFT from '../artifacts/contracts/NFT.sol/NFT.json'
 
 import { initializeApp, getApps } from "firebase/app"
 import { getStorage, ref, listAll } from "firebase/storage";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, limit, where} from "firebase/firestore";
 
-export default function MyCollection() {
+export default function ByAuthor() {
   const [nfts, setNfts] = useState([])
   const [sold, setSold] = useState([])
   const [bought, setBought] = useState([])
@@ -24,6 +26,10 @@ export default function MyCollection() {
   const [loadingState, setLoadingState] = useState('not-loaded')
   const [address, setAddress] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const router = useRouter()
+  const { theme } = router.query
+  const [onSaleIndex, setOnSaleIndex] = useState(0)
+  const [optionsState, setOptionsState] = useState('')
 
   async function getMETT(currentAccount) {
     const web3Modal = new Web3Modal()
@@ -50,6 +56,9 @@ export default function MyCollection() {
     }
   }
 
+  function handleChange(event) {
+    setOptionsState(event.target.value);
+  }
   function handleChainChanged(_chainId) {
     // We recommend reloading the page, unless you must do otherwise
     //window.location.reload();
@@ -59,6 +68,7 @@ export default function MyCollection() {
   // any buttons the user can click to initiate the request.
   // MetaMask will reject any additional requests while the first is still
   // pending.
+
   useEffect(() => {
     if (window.ethereum) {
       window.ethereum
@@ -75,7 +85,6 @@ export default function MyCollection() {
         });
       window.ethereum.on('accountsChanged', handleAccountsChanged);
     } else {
-      console.log("Non-Ethereum browser detected. You should consider installing MetaMask.");
       setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
     }
     return function cleanup() {
@@ -101,7 +110,13 @@ export default function MyCollection() {
     const db = getFirestore(app)
     //const auth = getAuth(app)
 
-    const querySnapshot = await getDocs(collection(db, "characters"));
+
+    const nounsRef = collection(db, "characters");
+    const q = query(nounsRef,
+      orderBy("theme"),
+      orderBy("createdAt", "asc"));
+
+    const querySnapshot = await getDocs(q);
     const items = [];
     querySnapshot.forEach((doc) => {
       let character = doc.data();
@@ -114,13 +129,14 @@ export default function MyCollection() {
         sold: character.sold,
         seller: character.seller,
         owner: character.owner,
-        minted: character.minted
+        minted: character.minted,
+        theme: character.theme
       }
       items.push(item)
     })
-
-    const bougntItems = items.filter(i => i.owner === address && i.seller !== address)
-    setBought(bougntItems)
+    const myItems = items.filter(i => i.theme == optionsState)
+    setNfts(myItems)
+    setOnSaleIndex((myItems.length - 1) % ((new Date()).getHours()))
     setLoadingState('loaded')
   }
 
@@ -130,7 +146,11 @@ export default function MyCollection() {
     return function cleanup() {
       //mounted = false
     }
-  }, [address])
+  }, [optionsState])
+
+  useEffect(() => {
+    if (theme) setOptionsState(theme);
+  }, [theme]);
 
   async function mintFirebase(nft) {
     try {
@@ -176,7 +196,6 @@ export default function MyCollection() {
       setErrorMessage(error.message)
     }
   }
-
   async function loadNFTs() {
     const web3Modal = new Web3Modal({
       network: "mainnet",
@@ -230,25 +249,47 @@ export default function MyCollection() {
     setBought(bougntItems)
     setLoadingState('loaded')
   }
-  if (!address) return (<h1 className="py-10 px-20 text-3xl">Unable to connect to any crypto wallet.</h1>)
   if (loadingState === 'loaded' && !nfts.length && !bought.length) return (
-    <div className="p-4">
+    <div>
       <div className="header">{address}</div>
-      <h1 className="py-10 px-20 text-3xl">No assets purchased</h1>
+      <main>
+        <section className="py-5 text-center container">
+          <div className="row py-lg-5">
+            <div className="col-lg-6 col-md-8 mx-auto">
+              <h1 className="fw-light">Explore Themes in Art</h1>
+              <p className="lead text-muted">A themed based art gallery.</p>
+            </div>
+          </div>
+            <select value={optionsState} onChange={handleChange}>
+              <option value="" disabled default>Select your character theme</option>
+              <option value="Stone Age">Stone Age</option>
+              <option value="Space">Space</option>
+              <option value="Evil and Justice">Evil and Justice</option>
+              <option value="Courage and Perseverance">Courage and Perseverance</option>
+              <option value="Crypto">Crypto</option>
+            </select>
+        </section>
+      </main>
     </div>
   )
   if (showModal) return (
-    <div className="p-4">
-      <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>
-      <p>{errorMessage}</p>
-      <div className="loader"></div>
+    <div>
+      <div className="header">{address}</div>
+      <div className="p-4">
+        <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>
+        <p>{errorMessage}</p>
+        <div className="loader"></div>
+      </div>
     </div>
   )
   if (showModalMinting) return (
-    <div className="p-4">
-      <p>Please wait. We are waiting for Smart Contract to finish processing.</p>
-      <p>{errorMessage}</p>
-      {!errorMessage && <div className="loader4Color"></div>}
+    <div>
+      <div className="header">{address}</div>
+      <div className="p-4">
+        <p>Please wait. We are waiting for Smart Contract to finish processing.</p>
+        <p>{errorMessage}</p>
+        {!errorMessage && <div className="loader4Color"></div>}
+      </div>
     </div>
   )
   return (
@@ -258,20 +299,31 @@ export default function MyCollection() {
         <section className="py-5 text-center container">
           <div className="row py-lg-5">
             <div className="col-lg-6 col-md-8 mx-auto">
-              <h1 className="fw-light">My Purchase</h1>
-              <p className="lead text-muted">where you can find work that you have purchased.</p>
+              <h1 className="fw-light">Explore Themes in Art</h1>
+              <p className="lead text-muted">A themed based art gallery.</p>
             </div>
           </div>
+            <select value={optionsState} onChange={handleChange}>
+              <option value="" disabled default>Select your character theme</option>
+              <option value="Stone Age">Stone Age</option>
+              <option value="Space">Space</option>
+              <option value="Evil and Justice">Evil and Justice</option>
+              <option value="Courage and Perseverance">Courage and Perseverance</option>
+              <option value="Crypto">Crypto</option>
+            </select>
         </section>
         <div className="album py-5 bg-light">
           <div className="container">
             <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
               {
-                bought.map((nft, i) => (
+                nfts.map((nft, i) => (
                   <div key={i} className="col">
-                    <div className="card shadow-sm">
+                    <div className={onSaleIndex == i ? "card shadow-sm border-5 border-primary" : 'card shadow-sm'}>
+                      <div className="card-header text-center">
+                        {nft.theme}
+                      </div>
                       <div>
-                        <Image src={nft.image} alt="NFT on display" width="100%" height="100%"  />
+                        <Image src={nft.image} alt="NFT series" width="100%" height="100%"  />
                       </div>
                       <div className="card-body">
                       <h5 className="card-title">{nft.name}</h5>
@@ -279,11 +331,14 @@ export default function MyCollection() {
                       <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
                       <div className="d-flex justify-content-between align-items-center">
                         <div className="btn-group">
-                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => mintFirebase(nft)}>
-                            Mint
-                          </button>
+                          <Link href={{
+                            pathname: "/auctions",
+                            query: {theme: nft.theme}
+                          }} >
+                            <button type="button" className="btn btn-sm btn-outline-secondary">View Auctions</button>
+                          </Link>
                         </div>
-                        <small className="text-muted">Minted - {nft.price} MATIC</small>
+                        <small className="text-muted">{nft.price} MATIC</small>
                       </div>
                       </div>
                     </div>
