@@ -129,7 +129,7 @@ export default function Home() {
       // let descNotSoldItem = saleItems.reduce((prev, current) => {
       //   return current.sold ? prev : current
       // }, saleItems[onSaleIndex % (saleItems.length - 1)])
-      let descNotSoldItem = saleItems[onSaleIndex % (saleItems.length - 1)]
+      let descNotSoldItem = saleItems[onSaleIndex % (saleItems.length)]
       showcaseItems.push(descNotSoldItem)
       if (descNotSoldItem.price < maxSoldPrice + 1) {
         descNotSoldItem.price = maxSoldPrice + 1
