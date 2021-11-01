@@ -136,7 +136,6 @@ export default function ByAuthor() {
     })
     const myItems = items.filter(i => i.owner == address)
     setNfts(myItems)
-    setOnSaleIndex((myItems.length - 1) % ((new Date()).getHours()))
     setLoadingState('loaded')
   }
 
@@ -146,11 +145,7 @@ export default function ByAuthor() {
     return function cleanup() {
       //mounted = false
     }
-  }, [optionsState])
-
-  useEffect(() => {
-    if (theme) setOptionsState(theme);
-  }, [theme]);
+  }, [address])
 
   async function mintFirebase(nft) {
     try {
@@ -260,14 +255,6 @@ export default function ByAuthor() {
               <p className="lead text-muted">A themed based art gallery.</p>
             </div>
           </div>
-            <select value={optionsState} onChange={handleChange}>
-              <option value="" disabled default>Select your character theme</option>
-              <option value="Stone Age">Stone Age</option>
-              <option value="Space">Space</option>
-              <option value="Evil and Justice">Evil and Justice</option>
-              <option value="Courage and Perseverance">Courage and Perseverance</option>
-              <option value="Crypto">Crypto</option>
-            </select>
         </section>
       </main>
     </div>
@@ -296,22 +283,6 @@ export default function ByAuthor() {
     <div>
       <div className="header">{address}</div>
       <main>
-        <section className="py-5 text-center container">
-          <div className="row py-lg-5">
-            <div className="col-lg-6 col-md-8 mx-auto">
-              <h1 className="fw-light">Explore Themes in Art</h1>
-              <p className="lead text-muted">A themed based art gallery.</p>
-            </div>
-          </div>
-            <select value={optionsState} onChange={handleChange}>
-              <option value="" disabled default>Select your character theme</option>
-              <option value="Stone Age">Stone Age</option>
-              <option value="Space">Space</option>
-              <option value="Evil and Justice">Evil and Justice</option>
-              <option value="Courage and Perseverance">Courage and Perseverance</option>
-              <option value="Crypto">Crypto</option>
-            </select>
-        </section>
         <div className="album py-5 bg-light">
           <div className="container">
             <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
@@ -331,12 +302,9 @@ export default function ByAuthor() {
                       <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
                       <div className="d-flex justify-content-between align-items-center">
                         <div className="btn-group">
-                          <Link href={{
-                            pathname: "/auctions",
-                            query: {theme: nft.theme}
-                          }} >
-                            <button type="button" className="btn btn-sm btn-outline-secondary">View Auctions</button>
-                          </Link>
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => mintFirebase(nft)}>
+                            Mint
+                          </button>
                         </div>
                         <small className="text-muted">{nft.price} MATIC</small>
                       </div>
