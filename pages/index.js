@@ -53,9 +53,10 @@ export default function Home() {
   const [connectToWallet, setConnectToWallet] = useState(false)
 
   function endThemeTime() {
-    const d = new Date();
-    let hour = d.getUTCHours();
-    return (24 - hour) *60*6
+    const d = new Date()
+    let hour = d.getUTCHours()
+    let minutes = d.getUTCMinutes()
+    return (24 - hour) *60*6 - (minutes * 6)
     //return 9
   }
 
