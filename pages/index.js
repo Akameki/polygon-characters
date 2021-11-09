@@ -27,17 +27,50 @@ export default function Home() {
   const [showModalMessage, setShowModalMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const router = useRouter()
-  //const [themeIndex, setThemeIndex] = useState(0)
-  //const [themeItemIndex, setThemeItemIndex] = useState(0)
-  //const themeIndexes = { themeIndex: 0, themeItemIndex: 0 }
-  const [themeIndexes, updateThemeIndexes] = useState({ themeIndex: 0, themeItemIndex: 0 })
-  const [themeCountdown, updateThemeCountdown] = useState({ themeEndTime: endCountdownTime(6), themeItemEndTime: endCountdownTime(1) })
+  const [themeIndexes, updateThemeIndexes] = useState({ themeIndex: nextThemeIndex(), themeItemIndex: nextItemIndex() })
+  const themes = ["Courage and Perseverance","Crypto",
+    "Monkey King Adventure",
+    "Monkey King Back To School",
+    "Monkey King Office Survival",
+    "Monkey King Stone Age",
+    "Monkey King Spy World",
+    "Monkey King Pirates",
+    "Monkey King Assassin",
+    "Monkey King Zodiac",
+    "Monkey King Ghost Hunter",
+    "Monkey King in Wonderland",
+    "Monkey King Space Ranger",
+    "Monkey King Halloween",
+    "Monkey King Hip Hop",
+    "Monkey King Babyland",
+    "Monkey King Wild Wild West"]
+  const [themeCountdown, updateThemeCountdown] = useState({ themeEndTime: endCountdownTime(endThemeTime()), themeItemEndTime: endCountdownTime(endItemTime()) })
 
   const [formInput, updateFormInput] = useState({ price: '', name: '', description: '' })
   const [bids, setBids] = useState([])
   const [showAuction, setShowAuction] = useState(false)
   const [theme, setTheme] = useState()
   const [connectToWallet, setConnectToWallet] = useState(false)
+
+  function endThemeTime() {
+    const d = new Date();
+    let hour = d.getUTCHours();
+    return (24 - hour) *60*6
+    //return 9
+  }
+
+  function endItemTime() {
+    const d = new Date()
+    let minutes = d.getUTCMinutes()
+    return (60 - minutes) * 6
+    //return 1
+  }
+
+  function nextItemIndex() {
+    const d = new Date();
+    let hour = d.getUTCHours();
+    return hour
+  }
 
   function groupBy(arr, criteria) {
     const newObj = arr.reduce(function (acc, currentValue) {
@@ -86,8 +119,34 @@ export default function Home() {
       //mounted = false
     }
   }, [])
+
   function endCountdownTime(targetDay) {
     return Math.floor(Date.now() / 1000) + (targetDay * 10)
+  }
+
+  // a and b are javascript Date objects
+  function dateDiffInMinutes(a, b) {
+    // Discard the time and time-zone information.
+    const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    const _MS_PER_DAY = 1000 * 10;
+    return Math.floor((utc2 - utc1) / _MS_PER_DAY);
+  }
+
+  // a and b are javascript Date objects
+  function dateDiffInDays(a, b) {
+    // Discard the time and time-zone information.
+    const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+    return Math.floor((utc2 - utc1) / _MS_PER_DAY);
+  }
+
+  function nextThemeIndex() {
+    const a = new Date("2021-11-09")
+    const b = new Date()
+    const difference = dateDiffInDays(b, b)
+    return difference
   }
 
   async function loadFirebase() {
@@ -132,9 +191,16 @@ export default function Home() {
     })
     let showcaseItems = []
     let groupByItems = groupBy(items, "theme")
-    let theme = Object.keys(groupByItems)[(themeIndexes.themeIndex % (Object.keys(groupByItems).length))]
-    setTheme(theme)
-      let saleItems = groupByItems[theme]
+
+    //if (themeIndexes.themeIndex < themes.length)
+    let theme = themes[themeIndexes.themeIndex]
+    let saleItems = groupByItems[theme]
+    if (saleItems) {
+    //if (themeIndexes.themeIndex < (Object.keys(groupByItems).length)) {
+      //let groupByIndex = themeIndexes.themeIndex
+      //let theme = Object.keys(groupByItems)[groupByIndex]
+      setTheme(theme)
+      //let saleItems = groupByItems[theme]
       let maxSoldPrice = saleItems.reduce((prev, current) => {
         if (current.sold) {
           return Math.max(prev, current.price)
@@ -142,19 +208,6 @@ export default function Home() {
           return prev
         }
       }, 0)
-      //let onSaleIndex = (saleItems.length - 1) % ((new Date()).getHours())
-
-      // let descNotSoldItem = saleItems.reduce((prev, current) => {
-      //   return current.sold ? prev : current
-      // }, saleItems[onSaleIndex % (saleItems.length - 1)])
-      // let descNotSoldItem = saleItems[themeItemIndex % (saleItems.length)]
-      // showcaseItems.push(descNotSoldItem)
-      // if (descNotSoldItem.price < maxSoldPrice + 1) {
-      //   descNotSoldItem.price = maxSoldPrice + 1
-      //   descNotSoldItem.priceDesc = `${maxSoldPrice} + 1`
-      // } else {
-      //   descNotSoldItem.priceDesc = `${descNotSoldItem.price}`
-      // }
 
       saleItems.forEach((item, i) => {
         if (i > themeIndexes.themeItemIndex) {
@@ -162,32 +215,33 @@ export default function Home() {
         }
       });
 
-    //})
-    //setNfts(showcaseItems)
-    setNfts(saleItems)
+      setNfts(saleItems)
 
-    const auctionRef = collection(db, "auctions");
-    const auction_query = query(auctionRef,
-      orderBy("theme"),
-      orderBy("createdAt", "desc"));
+      const auctionRef = collection(db, "auctions");
+      const auction_query = query(auctionRef,
+        orderBy("theme"),
+        orderBy("createdAt", "desc"));
 
-    const auctionQuerySnapshot = await getDocs(auction_query);
+      const auctionQuerySnapshot = await getDocs(auction_query);
 
-    const bidData = [];
-    auctionQuerySnapshot.forEach((doc) => {
-      let data = doc.data();
-      let item = {
-        id: doc.id,
-        price: data.price,
-        theme: data.theme,
-        bidder: data.bidder,
-        createdAt: new Date(data.createdAt).toString()
-      }
-      bidData.push(item)
-    })
+      const bidData = [];
+      auctionQuerySnapshot.forEach((doc) => {
+        let data = doc.data();
+        let item = {
+          id: doc.id,
+          price: data.price,
+          theme: data.theme,
+          bidder: data.bidder,
+          createdAt: new Date(data.createdAt).toString()
+        }
+        bidData.push(item)
+      })
 
-    const submitted = bidData.filter(i => i.theme == theme)
-    setBids(submitted)
+      const submitted = bidData.filter(i => i.theme == theme)
+      setBids(submitted)
+    } else {
+      setShowModalMessage("This is the end of auctions.")
+    }
 
     setLoadingState('loaded')
   }
@@ -323,87 +377,103 @@ export default function Home() {
     }
   }
 
-      async function bid() {
-        if (!window.ethereum || !address) {
-          setShowModalMessage("Unable to purchase without a crypto wallet. Please refresh screen to try again.")
-        } else {
-          try {
-            setShowModal(false)
-            setShowModalMessage('')
+  async function bid() {
+    if (!window.ethereum || !address) {
+      setShowModalMessage("Unable to purchase without a crypto wallet. Please refresh screen to try again.")
+    } else {
+      try {
+        const firebaseConfig = {
+          // INSERT YOUR OWN CONFIG HERE
+          apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
+          authDomain: "pay-a-vegan.firebaseapp.com",
+          databaseURL: "https://pay-a-vegan.firebaseio.com",
+          projectId: "pay-a-vegan",
+          storageBucket: "pay-a-vegan.appspot.com",
+          messagingSenderId: "587888386485",
+          appId: "1:587888386485:web:3a81137924d19cbe2439fc",
+          measurementId: "G-MGJK6GF9YW"
+        };
 
-            const firebaseConfig = {
-              // INSERT YOUR OWN CONFIG HERE
-              apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-              authDomain: "pay-a-vegan.firebaseapp.com",
-              databaseURL: "https://pay-a-vegan.firebaseio.com",
-              projectId: "pay-a-vegan",
-              storageBucket: "pay-a-vegan.appspot.com",
-              messagingSenderId: "587888386485",
-              appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-              measurementId: "G-MGJK6GF9YW"
-            };
+        const app = initializeApp(firebaseConfig)
 
-            const app = initializeApp(firebaseConfig)
+        const db = getFirestore(app)
 
-            const db = getFirestore(app)
+        const auctionRef = collection(db, "auctions");
+        const auction_query = query(auctionRef,
+          orderBy("theme"),
+          orderBy("createdAt", "desc"));
+        const auctionQuerySnapshot = await getDocs(auction_query);
 
-            const auctionRef = collection(db, "auctions");
-            const auction_query = query(auctionRef,
-              orderBy("theme"),
-              orderBy("createdAt", "desc"));
-            const auctionQuerySnapshot = await getDocs(auction_query);
-
-            const bidData = [];
-            auctionQuerySnapshot.forEach((doc) => {
-              let data = doc.data();
-              let item = {
-                id: doc.id,
-                price: data.price,
-                theme: data.theme,
-                bidder: data.bidder,
-                createdAt: new Date(data.createdAt).toString()
-              }
-              bidData.push(item)
-            })
-
-            const submitted = bidData.filter(i => i.theme == theme)
-            var basePrice = 0
-            if (submitted.length > 0) {
-              let winningBid = submitted.reduce((prev, curr) => {
-                return prev.price > curr.price ? prev : curr;
-              })
-              basePrice = Number(winningBid.price)
-            }
-            if (basePrice < Number(formInput.price)) {
-              const colRef = collection(db, 'auctions')
-              addDoc(colRef, {
-                price: Number(formInput.price),
-                bidder: address,
-                theme: theme,
-                createdAt: Date.now()
-              });
-            } else {
-              setShowModalMessage("Error - please enter a higher bid amount and try again.")
-            }
-            setShowModalMinting(false)
-          } catch (error) {
-            setShowModalMessage(error.message)
+        const bidData = [];
+        auctionQuerySnapshot.forEach((doc) => {
+          let data = doc.data();
+          let item = {
+            id: doc.id,
+            price: data.price,
+            theme: data.theme,
+            bidder: data.bidder,
+            createdAt: new Date(data.createdAt).toString()
           }
+          bidData.push(item)
+        })
+
+        const submitted = bidData.filter(i => i.theme == theme)
+        var basePrice = 0
+        var lastBidder = ''
+        if (submitted.length > 0) {
+          let winningBid = submitted.reduce((prev, curr) => {
+            return prev.price > curr.price ? prev : curr;
+          })
+          basePrice = Number(winningBid.price)
+          lastBidder = winningBid.bidder
         }
+        setShowModal(true)
+        setShowModalMinting(true)
+        setShowModalMessage('')
+        if (basePrice < Number(formInput.price)) {
+          const colRef = collection(db, 'auctions')
+          addDoc(colRef, {
+            price: Number(formInput.price),
+            bidder: address,
+            theme: theme,
+            createdAt: Date.now()
+          });
+
+          let eth_price = ethers.utils.parseUnits(formInput.price, 'ether')
+          let eth_basePrice = ethers.utils.parseUnits(basePrice.toString(), 'ether')
+
+          const web3Modal = new Web3Modal()
+          const connection = await web3Modal.connect()
+          const provider = new ethers.providers.Web3Provider(connection)
+          const signer = provider.getSigner()
+
+          /* next, create the item */
+          let contract = new ethers.Contract(nftmarketaddress, Market.abi, signer)
+          //const price = ethers.utils.parseUnits(nft.price.toString(), 'ether')
+          let transaction = await contract.updateBid(lastBidder, eth_basePrice, {
+            value: eth_price
+          })
+          await transaction.wait()
+          updateThemeIndexes({ ...themeIndexes })
+        } else {
+          setShowModalMessage("Error - please enter a higher bid amount and try again.")
+        }
+      } catch (error) {
+        setShowModalMessage(error.message)
       }
+      setShowModal(false)
+      setShowModalMinting(false)
+    }
+  }
+
   async function nextTheme() {
-    //themeIndexes.themeIndex = themeIndexes.themeIndex + 1
     if (connectToWallet) settle()
-    updateThemeCountdown({ ...themeCountdown, themeEndTime: endCountdownTime(6), themeItemEndTime: endCountdownTime(1)})
+    updateThemeCountdown({ ...themeCountdown, themeEndTime: endCountdownTime(endThemeTime()), themeItemEndTime: endCountdownTime(endItemTime())})
     updateThemeIndexes({ ...themeIndexes, themeIndex: themeIndexes.themeIndex + 1, themeItemIndex: 0})
-    //setThemeEndTime(endCountdownTime(4))
-    //loadFirebase()
   }
   async function nextThemeItem() {
-    updateThemeCountdown({ ...themeCountdown, themeItemEndTime: endCountdownTime(1)})
+    updateThemeCountdown({ ...themeCountdown, themeItemEndTime: endCountdownTime(endItemTime())})
     updateThemeIndexes({ ...themeIndexes, themeItemIndex: themeIndexes.themeItemIndex + 1})
-    //themeIndexes.themeItemIndex = themeIndexes.themeItemIndex + 1
-    //loadFirebase()
   }
   async function loadNFTs() {
       const web3Modal = new Web3Modal({
@@ -478,7 +548,7 @@ export default function Home() {
     const contract = new ethers.Contract(nftmarketaddress, Market.abi, signer)
 
     const price = ethers.utils.parseUnits(nft.price.toString(), 'ether')
-    const transaction = await contract.createMarketSale(nftaddress, nft.tokenId, {
+    const transaction = await contract.createMarketSale(Market, nft.tokenId, {
       value: price
     })
     await transaction.wait()
@@ -524,62 +594,59 @@ export default function Home() {
           </div>
           <div className="row">
             <div className="col-md">
-                <h2 className="text-2xl">Countdown to next item.</h2>
-                <Clock endTime={themeCountdown.themeItemEndTime} trigger={() => nextThemeItem()} />
-
-            </div>
-            <div className="col-md">
                 <h2 className="text-2xl">Countdown to next theme.</h2>
                 <Clock endTime={themeCountdown.themeEndTime} trigger={() => nextTheme()} />
-
             </div>
           </div>
         </section>
-
         <div className="row">
           <div className="col-md">
-        <div className="album py-5 bg-light">
-          <div className="container">
-            <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-              {
-                nfts.map((nft, i) => (
-                  <div key={i} className="col">
-                    <div className="card shadow-sm">
-                      <div className="card-header text-center">
-                        {nft.theme}
-                      </div>
-                      <div>
-                        <Image src={nft.image} alt="NFT on display" width="100%" height="100%"  />
-                      </div>
-                      <div className="card-body">
-                        <h5 className="card-title">{nft.name}</h5>
-                        <p className="card-text">{nft.description}</p>
-                        <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
-                      </div>
-                    </div>
+            <div className="album py-5 bg-light">
+              <div className="container">
+                <div className="row">
+                  <div className="col-md">
+                      <h2 className="text-xl">Countdown to next item.</h2>
+                      <Clock endTime={themeCountdown.themeItemEndTime} trigger={() => nextThemeItem()} />
                   </div>
-                ))
-              }
+                </div>
+                <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                  {
+                    nfts.map((nft, i) => (
+                      <div key={i} className="col">
+                        <div className="card shadow-sm">
+                          <div className="card-header text-center">
+                            {nft.theme}
+                          </div>
+                          <div>
+                            <Image src={nft.image} alt="NFT on display" width="100%" height="100%"  />
+                          </div>
+                          <div className="card-body">
+                            <h5 className="card-title">{nft.name}</h5>
+                            <p className="card-text">{nft.description}</p>
+                            <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-        <div className="col-md">
-          {
-            bids.map((bid, i) => (
-              <div key={i} className="row mb-3">
-                <div className="col-4 themed-grid-col"><small className="text-muted">{bid.price} MATIC</small></div>
-                <div className="col-4 themed-grid-col"><small className="text-muted">{bid.createdAt}</small></div>
-                <div className="col-4 themed-grid-col"><small className="text-muted">{bid.bidder}</small></div>
-              </div>
-            ))
-          }
-          { (bids.length == 0) &&
-            <p>No submitted bids yet.</p>
-          }
-
-          {
+          <div className="col-md">
+            {
+              bids.map((bid, i) => (
+                <div key={i} className="row mb-3">
+                  <div className="col-4 themed-grid-col"><small className="text-muted">{bid.price} MATIC</small></div>
+                  <div className="col-4 themed-grid-col"><small className="text-muted">{bid.createdAt}</small></div>
+                  <div className="col-4 themed-grid-col"><small className="text-muted">{bid.bidder}</small></div>
+                </div>
+              ))
+            }
+            {
+              (bids.length == 0) && <p>No submitted bids yet.</p>
+            }
+            {
               <div>
                 <div className="flex justify-center">
                   <div className="w-1/2 flex flex-col pb-12">
@@ -599,9 +666,9 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-          }
+            }
+          </div>
         </div>
-      </div>
       </main>
     </div>
   )

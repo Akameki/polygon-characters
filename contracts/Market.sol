@@ -105,6 +105,49 @@ contract NFTMarket is ReentrancyGuard {
     idToMarketItem[itemId].endTime = idToMarketItem[itemId].startTime + duration;
   }
 
+  function createBid(
+    uint256 price
+    ) public payable nonReentrant {
+    require(price > 0, "Price must be at least 1 wei");
+
+    _itemIds.increment();
+    uint256 itemId = _itemIds.current();
+
+    idToMarketItem[itemId] =  MarketItem(
+      itemId,
+      address(0),
+      0,
+      payable(msg.sender),
+      payable(address(0)),
+      price,
+      false,
+      false,
+      0,
+      0
+    );
+
+    emit MarketItemCreated(
+      itemId,
+      address(0),
+      0,
+      msg.sender,
+      address(0),
+      price,
+      false,
+      false
+    );
+  }
+
+  function updateBid(
+    address lastBidder,
+    uint256 lastbid
+    ) public payable nonReentrant {
+    require(msg.value > lastbid, "Please submit the asking price in order to complete the purchase");
+
+    payable(owner).transfer(msg.value - lastbid);
+    payable(lastBidder).transfer(lastbid);
+  }
+
   /* Creates the sale of a marketplace item */
   /* Transfers ownership of the item, as well as funds between parties */
   function createMarketSale(

@@ -255,11 +255,23 @@ export default function CreateItem() {
         <div className="w-1/2 flex flex-col pb-12">
           <select value={optionsState} onChange={handleChange}>
             <option value="" disabled default>Select your character theme</option>
-            <option value="Stone Age">Stone Age</option>
-            <option value="Space">Space</option>
-            <option value="Evil and Justice">Evil and Justice</option>
             <option value="Courage and Perseverance">Courage and Perseverance</option>
             <option value="Crypto">Crypto</option>
+            <option value="Monkey King Adventure">Monkey King Adventure</option>
+            <option value="Monkey King Back To School">Monkey King Back To School</option>
+            <option value="Monkey King Office Survival">Monkey King Office Survival</option>
+            <option value="Monkey King Stone Age">Monkey King Stone Age</option>
+            <option value="Monkey King Spy World">Monkey King Spy World</option>
+            <option value="Monkey King Pirates">Monkey King Pirates</option>
+            <option value="Monkey King Assassin">Monkey King Assassin</option>
+            <option value="Monkey King Zodiac">Monkey King Zodiac</option>
+            <option value="Monkey King Ghost Hunter">Monkey King Ghost Hunter</option>
+            <option value="Monkey King in Wonderland">Monkey King in Wonderland</option>
+            <option value="Monkey King Space Ranger">Monkey King Space Ranger</option>
+            <option value="Monkey King Halloween">Monkey King Halloween</option>
+            <option value="Monkey King Hip Hop">Monkey King Hip Hop</option>
+            <option value="Monkey King Babyland">Monkey King Babyland</option>
+            <option value="Monkey King Wild Wild West">Monkey King Wild Wild West</option>
           </select>
           <input
             placeholder="Character Name"
@@ -272,17 +284,6 @@ export default function CreateItem() {
             className="mt-2 border rounded p-4"
             value={formInput.description}
             onChange={e => updateFormInput({ ...formInput, description: e.target.value })}
-          />
-          <input
-            placeholder="Character Price in MATIC"
-            className="mt-2 border rounded p-4"
-            value={formInput.price}
-            onChange={(event) => {
-              if (isFinite(event.target.value)) {
-                // UPDATE YOUR STATE (i am using formik)
-                updateFormInput({ ...formInput, price: event.target.value});
-              }
-            }}
           />
           <input
             type="file"

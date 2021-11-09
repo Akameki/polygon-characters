@@ -134,7 +134,7 @@ export default function ByAuthor() {
       }
       items.push(item)
     })
-    const myItems = items.filter(i => i.owner == address)
+    const myItems = items.filter(i => i.owner.toUpperCase() === address.toUpperCase())
     setNfts(myItems)
     setLoadingState('loaded')
   }
