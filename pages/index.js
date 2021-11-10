@@ -144,9 +144,9 @@ export default function Home() {
   }
 
   function nextThemeIndex() {
-    const a = new Date("2021-11-09")
+    const a = new Date("2021-11-10")
     const b = new Date()
-    const difference = dateDiffInDays(b, b)
+    const difference = dateDiffInDays(a, b)
     return difference
   }
 
