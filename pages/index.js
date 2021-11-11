@@ -125,28 +125,9 @@ export default function Home() {
     return Math.floor(Date.now() / 1000) + (targetDay * 10)
   }
 
-  // a and b are javascript Date objects
-  function dateDiffInMinutes(a, b) {
-    // Discard the time and time-zone information.
-    const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-    const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-    const _MS_PER_DAY = 1000 * 10;
-    return Math.floor((utc2 - utc1) / _MS_PER_DAY);
-  }
-
-  // a and b are javascript Date objects
-  function dateDiffInDays(a, b) {
-    // Discard the time and time-zone information.
-    const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-    const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-    const _MS_PER_DAY = 1000 * 60 * 60 * 24;
-    return Math.floor((utc2 - utc1) / _MS_PER_DAY);
-  }
-
   function nextThemeIndex() {
-    const a = new Date("2021-11-10")
     const b = new Date()
-    const difference = dateDiffInDays(a, b)
+    const difference = Math.max(b.getUTCDate() - 11, 0)
     return difference
   }
 
