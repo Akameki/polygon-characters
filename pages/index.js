@@ -4,11 +4,14 @@ import axios from 'axios'
 import Web3Modal from "web3modal"
 import Image from 'next/image'
 
+import Carousel from 'react-bootstrap/Carousel';
+import Pagination from 'react-bootstrap/Pagination';
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
-  nftaddress, nftmarketaddress
+  nftaddress, nftmarketaddress, envChainId
 } from '../config'
+import '../styles/Home.module.css'
 
 import Clock from './Clock'
 import NFT from '../artifacts/contracts/NFT.sol/NFT.json'
@@ -27,7 +30,7 @@ export default function Home() {
   const [showModalMessage, setShowModalMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const router = useRouter()
-  const [themeIndexes, updateThemeIndexes] = useState({ themeIndex: nextThemeIndex(), themeItemIndex: nextItemIndex() })
+  const [themeIndexes, updateThemeIndexes] = useState({ themeIndex: nextThemeIndex(), themeItemIndex: nextItemIndex(), title: `Week ${nextThemeIndex() + 1}` })
   const themes = ["Courage and Perseverance","Crypto",
     "Monkey King Adventure",
     "Monkey King Back To School",
@@ -48,9 +51,12 @@ export default function Home() {
 
   const [formInput, updateFormInput] = useState({ price: '', name: '', description: '' })
   const [bids, setBids] = useState([])
-  const [showAuction, setShowAuction] = useState(false)
+  const [minimumBid, setMinimumBid] = useState(0.1)
   const [theme, setTheme] = useState()
-  const [connectToWallet, setConnectToWallet] = useState(false)
+  const [index, setIndex] = useState(0);
+  const handleSelect = (selectedIndex, e) => {
+    setIndex(selectedIndex);
+  };
 
   function endThemeTime() {
     const d = new Date()
@@ -88,15 +94,19 @@ export default function Home() {
     if (accounts.length === 0) {
       // MetaMask is locked or the user has not connected any accounts
       console.log('Please connect to MetaMask.');
-      setConnectToWallet(false)
     } else if (accounts[0] !== address) {
       setAddress(accounts[0]);
-      console.log("currentAccount", accounts[0]);
-      //getMETT(accounts[0]);
-      setConnectToWallet(true)
-    } else {
-      setConnectToWallet(true)
+      console.log("handleAccountsChanged is fired", accounts[0]);
     }
+  }
+  function handleChainChanged(chainId) {
+    console.log('handleChainChanged is fired upon changing network', chainId);
+  }
+  function handleConnect(info) {
+    console.log('handleConnect is fired upon changing network', info);
+  }
+  function handleDisconnect(error) {
+    console.log('handleDisconnect is fired upon changing network', error);
   }
   useEffect(() => {
     if (window.ethereum) {
@@ -113,6 +123,10 @@ export default function Home() {
           }
         });
       window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+      window.ethereum.on('connect', handleConnect);
+      window.ethereum.on('disconnect', handleDisconnect);
+
     } else {
       setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
     }
@@ -127,7 +141,7 @@ export default function Home() {
 
   function nextThemeIndex() {
     const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 11, 0)
+    const difference = Math.max(b.getUTCDate() - 16, 0)
     return difference
   }
 
@@ -145,7 +159,6 @@ export default function Home() {
     };
 
     const app = initializeApp(firebaseConfig)
-
     const db = getFirestore(app)
     //const auth = getAuth(app)
 
@@ -171,18 +184,12 @@ export default function Home() {
 
       items.push(item)
     })
-    let showcaseItems = []
     let groupByItems = groupBy(items, "theme")
-
-    //if (themeIndexes.themeIndex < themes.length)
     let theme = themes[themeIndexes.themeIndex]
     let saleItems = groupByItems[theme]
+    let submitted = []
+    let lowestBid = 0.1
     if (saleItems) {
-    //if (themeIndexes.themeIndex < (Object.keys(groupByItems).length)) {
-      //let groupByIndex = themeIndexes.themeIndex
-      //let theme = Object.keys(groupByItems)[groupByIndex]
-      setTheme(theme)
-      //let saleItems = groupByItems[theme]
       let maxSoldPrice = saleItems.reduce((prev, current) => {
         if (current.sold) {
           return Math.max(prev, current.price)
@@ -191,13 +198,22 @@ export default function Home() {
         }
       }, 0)
 
-      saleItems.forEach((item, i) => {
-        if (i > themeIndexes.themeItemIndex) {
-          item.image = '/patch-question.svg'
-        }
-      });
+      // saleItems.forEach((item, i) => {
+      //   if (i > themeIndexes.themeItemIndex) {
+      //     item.image = '/patch-question.svg'
+      //   }
+      // });
 
-      setNfts(saleItems)
+      saleItems.push({
+        id: 100,
+        price: 100,
+        name: 'king0',
+        image: '/monkeyking0.png',
+        seller: 'admin',
+        sold: false,
+        description: 'admin default',
+        theme: theme
+      })
 
       const auctionRef = collection(db, "auctions");
       const auction_query = query(auctionRef,
@@ -216,15 +232,17 @@ export default function Home() {
           bidder: data.bidder,
           createdAt: new Date(data.createdAt).toString()
         }
+        item.bidder_string = item.bidder ? [data.bidder.substr(0, 4), data.bidder.substr(38, 4)].join('...') : ''
         bidData.push(item)
       })
 
-      const submitted = bidData.filter(i => i.theme == theme)
-      setBids(submitted)
-    } else {
-      setShowModalMessage("This is the end of auctions.")
+      submitted = bidData.filter(i => i.theme == theme)
+      lowestBid = ((submitted[0]?.price || 0) + 0.2).toFixed(2)
     }
-
+    setNfts(saleItems || [])
+    setTheme(theme)
+    setBids(submitted)
+    setMinimumBid(lowestBid)
     setLoadingState('loaded')
   }
 
@@ -242,7 +260,6 @@ export default function Home() {
       };
 
       const app = initializeApp(firebaseConfig)
-
       const db = getFirestore(app)
       //const auth = getAuth(app)
 
@@ -359,10 +376,14 @@ export default function Home() {
     }
   }
 
-  async function bid() {
-    if (!window.ethereum || !address) {
-      setShowModalMessage("Unable to purchase without a crypto wallet. Please refresh screen to try again.")
-    } else {
+  // For now, 'eth_accounts' will continue to always return an array
+  async function handleChainIdUponBidding(chainId) {
+    console.log("*****envChainId",envChainId)
+    console.log("*****eth_chainId",chainId)
+    //0x89 Polygon
+    //0x13881 Mumbai
+    //31337 hardhat
+    if (chainId === envChainId) {
       try {
         const firebaseConfig = {
           // INSERT YOUR OWN CONFIG HERE
@@ -377,9 +398,7 @@ export default function Home() {
         };
 
         const app = initializeApp(firebaseConfig)
-
         const db = getFirestore(app)
-
         const auctionRef = collection(db, "auctions");
         const auction_query = query(auctionRef,
           orderBy("theme"),
@@ -413,14 +432,6 @@ export default function Home() {
         setShowModalMinting(true)
         setShowModalMessage('')
         if (basePrice < Number(formInput.price)) {
-          const colRef = collection(db, 'auctions')
-          addDoc(colRef, {
-            price: Number(formInput.price),
-            bidder: address,
-            theme: theme,
-            createdAt: Date.now()
-          });
-
           let eth_price = ethers.utils.parseUnits(formInput.price, 'ether')
           let eth_basePrice = ethers.utils.parseUnits(basePrice.toString(), 'ether')
 
@@ -436,6 +447,15 @@ export default function Home() {
             value: eth_price
           })
           await transaction.wait()
+
+          const colRef = collection(db, 'auctions')
+          addDoc(colRef, {
+            price: Number(formInput.price),
+            bidder: address,
+            theme: theme,
+            createdAt: Date.now()
+          });
+
           updateThemeIndexes({ ...themeIndexes })
         } else {
           setShowModalMessage("Error - please enter a higher bid amount and try again.")
@@ -445,17 +465,79 @@ export default function Home() {
       }
       setShowModal(false)
       setShowModalMinting(false)
+    } else {
+      setShowModalMessage("Error - Please connect to MetaMask and try again.")
+    }
+  }
+
+  // For now, 'eth_accounts' will continue to always return an array
+  function handleGetBalanceUponBidding(balance) {
+    let read = parseInt(balance) / 10**18 // will need change based on what token
+    console.log( "Wallet Token Balance:" + read.toFixed(5) )
+    if (read > minimumBid) {
+      window.ethereum
+        .request({ method: 'eth_chainId' })
+        .then(handleChainIdUponBidding)
+        .catch((err) => {
+          if (err.code === 4001) {
+            // EIP-1193 userRejectedRequest error
+            // If this happens, the user rejected the connection request.
+            console.log('Please connect to MetaMask.');
+          } else {
+            console.error(err);
+          }
+        })
+    } else {
+      setShowModalMessage("Error - Your wallet has a balance less than the Minimum Bid.")
+    }
+  }
+
+  // For now, 'eth_accounts' will continue to always return an array
+  function handleRequestAccountsUponBidding(accounts) {
+    if (accounts.length === 0) {
+      // MetaMask is locked or the user has not connected any accounts
+      console.log('Please connect to MetaMask.');
+      setShowModalMessage("Error - Please connect to MetaMask and try again.")
+    } else {
+      window.ethereum
+        .request({
+          method: 'eth_getBalance', params: [accounts[0],"latest"] })
+        .then(handleGetBalanceUponBidding)
+        .catch((err) => {
+          if (err.code === 4001) {
+            // EIP-1193 userRejectedRequest error
+            // If this happens, the user rejected the connection request.
+            console.log('Please connect to MetaMask.');
+          } else {
+            console.error(err);
+          }
+        })
+    }
+  }
+
+  async function bid() {
+    if (window.ethereum) {
+      window.ethereum
+        .request({ method: 'eth_requestAccounts' })
+        .then(handleRequestAccountsUponBidding)
+        .catch((err) => {
+          if (err.code === 4001) {
+            // EIP-1193 userRejectedRequest error
+            // If this happens, the user rejected the connection request.
+            console.log('Please connect to MetaMask.');
+          } else {
+            console.error(err);
+          }
+        })
+    } else {
+      setShowModalMessage("Unable to connect to a crypto wallet. Please refresh screen to try again.")
     }
   }
 
   async function nextTheme() {
-    if (connectToWallet) settle()
+    settle()
     updateThemeCountdown({ ...themeCountdown, themeEndTime: endCountdownTime(endThemeTime()), themeItemEndTime: endCountdownTime(endItemTime())})
     updateThemeIndexes({ ...themeIndexes, themeIndex: themeIndexes.themeIndex + 1, themeItemIndex: 0})
-  }
-  async function nextThemeItem() {
-    updateThemeCountdown({ ...themeCountdown, themeItemEndTime: endCountdownTime(endItemTime())})
-    updateThemeIndexes({ ...themeIndexes, themeItemIndex: themeIndexes.themeItemIndex + 1})
   }
   async function loadNFTs() {
       const web3Modal = new Web3Modal({
@@ -537,12 +619,6 @@ export default function Home() {
     setShowModal(false)
     loadNFTs()
   }
-  if (loadingState === 'loaded' && !nfts.length) return (
-    <div>
-      <h1 className="px-20 py-10 text-3xl">No items in marketplace</h1>
-      <p className="px-20 py-10">Please use Sell Digital Character to upload your creative work</p>
-    </div>
-  )
   if (showModal) return (
     <div className="p-4">
       <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>
@@ -552,7 +628,6 @@ export default function Home() {
   )
   if (showModalMessage) return (
     <div className="p-4">
-      <div className="header">{address}</div>
       <p>{showModalMessage}</p>
     </div>
   )
@@ -565,90 +640,200 @@ export default function Home() {
   )
   return (
     <div>
-      <div className="header">{address}</div>
       <main>
-        <section className="py-5 text-center container">
-          <div className="row py-lg-5">
-            <div className="col-lg-6 col-md-8 mx-auto">
-              <h1 className="fw-light">Public Home</h1>
-              <p className="lead text-muted">From Monday - Friday, we showcase one item from each theme.</p>
-            </div>
-          </div>
-          <div className="row">
-            <div className="col-md">
-                <h2 className="text-2xl">Countdown to next theme.</h2>
-                <Clock endTime={themeCountdown.themeEndTime} trigger={() => nextTheme()} />
-            </div>
-          </div>
-        </section>
         <div className="row">
           <div className="col-md">
             <div className="album py-5 bg-light">
               <div className="container">
-                <div className="row">
-                  <div className="col-md">
-                      <h2 className="text-xl">Countdown to next item.</h2>
-                      <Clock endTime={themeCountdown.themeItemEndTime} trigger={() => nextThemeItem()} />
-                  </div>
-                </div>
-                <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-                  {
-                    nfts.map((nft, i) => (
-                      <div key={i} className="col">
-                        <div className="card shadow-sm">
-                          <div className="card-header text-center">
-                            {nft.theme}
-                          </div>
-                          <div>
-                            <Image src={nft.image} alt="NFT on display" width="100%" height="100%"  />
-                          </div>
-                          <div className="card-body">
-                            <h5 className="card-title">{nft.name}</h5>
-                            <p className="card-text">{nft.description}</p>
-                            <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
-                          </div>
-                        </div>
+                <div className="w300-px-wide">
+                {
+                  themeIndexes.themeIndex > nextThemeIndex() ?
+                  (
+                    <div>
+                      <h1 className="px-20 py-10 text-3xl">No items in marketplace</h1>
+                      <p className="px-20 py-10">More creative work coming soon.</p>
+                    </div>
+                  ) : (
+                    nfts.length ? (
+                      <Carousel activeIndex={index} onSelect={handleSelect}>
+                         {nfts.map((nft, i) => {
+                          return (
+                            <Carousel.Item key={i}>
+                              <img
+                                className="d-block w-100"
+                                src={nft.image}
+                                alt="slider image"
+                              />
+                            </Carousel.Item>
+                          )
+                        })}
+                      </Carousel>
+                    ) : (
+                      <div>
+                        <h1 className="px-20 py-10 text-3xl">No items in marketplace</h1>
                       </div>
-                    ))
-                  }
+                    )
+                  )
+                }
                 </div>
               </div>
             </div>
           </div>
           <div className="col-md">
-            {
-              bids.map((bid, i) => (
-                <div key={i} className="row mb-3">
-                  <div className="col-4 themed-grid-col"><small className="text-muted">{bid.price} MATIC</small></div>
-                  <div className="col-4 themed-grid-col"><small className="text-muted">{bid.createdAt}</small></div>
-                  <div className="col-4 themed-grid-col"><small className="text-muted">{bid.bidder}</small></div>
-                </div>
-              ))
-            }
-            {
-              (bids.length == 0) && <p>No submitted bids yet.</p>
-            }
-            {
-              <div>
-                <div className="flex justify-center">
-                  <div className="w-1/2 flex flex-col pb-12">
-                    <input
-                      placeholder="Character Price in MATIC"
-                      className="mt-2 border rounded p-4"
-                      value={formInput.price}
-                      onChange={(event) => {
-                        if (isFinite(event.target.value)) {
-                          updateFormInput({ ...formInput, price: event.target.value});
-                        }
-                      }}
-                    />
-                    <button className="w-full bg-pink-500 text-white font-bold py-2 px-12 rounded" onClick={bid}>
-                      Submit Bid
-                    </button>
+            <div className="card">
+              <div className="card-header">
+                <div className="row">
+                  <div className="col-md">
+                    <div className="container d-flex h-100">
+                      <div className="justify-content-center align-self-center">
+                       <h5 className="my-auto text-danger">{themeIndexes.title}</h5>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md">
+                    <div className="container d-flex h-100">
+                      <div className="justify-content-center align-self-center">
+                        <Pagination>
+                          <Pagination.First onClick={() => updateThemeIndexes({...themeIndexes, themeIndex: 0, title: 'Week 1'})} />
+                          <Pagination.Prev onClick={() => updateThemeIndexes({...themeIndexes, themeIndex: Math.max(0, themeIndexes.themeIndex - 1), title: `Week ${Math.max(1, themeIndexes.themeIndex)}`})} />
+                          <Pagination.Next onClick={() => updateThemeIndexes({...themeIndexes, themeIndex: Math.min(themes.length - 1, themeIndexes.themeIndex + 1), title: `Week ${Math.min(themes.length, themeIndexes.themeIndex + 2)}`})} />
+                          <Pagination.Last onClick={() => updateThemeIndexes({...themeIndexes, themeIndex: themes.length - 1, title: `Week ${themes.length}`})} />
+                        </Pagination>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            }
+              <div className="card-body">
+                <div className="row mb-6">
+                  <h2 className="card-title">{theme}</h2>
+                </div>
+                {
+                  themeIndexes.themeIndex === nextThemeIndex() &&
+                  (
+                    <div className="row mb-6">
+                      <div className="col-md">
+                          <div className="col">
+                            <h6 className="card-subtitle mb-2 text-muted">Current Bid</h6>
+                            <h2 className="card-subtitle mb-2">{bids[0]?.price} eth</h2>
+                          </div>
+                      </div>
+                      <div className="col-md">
+                          <div className="justify-content-center align-self-center">
+                          <h6 className="card-subtitle mb-2 text-muted">Ends in</h6>
+                          <h2 className="card-subtitle mb-2">
+                            <Clock endTime={themeCountdown.themeEndTime} trigger={() => nextTheme()} />
+                          </h2>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+                {
+                  themeIndexes.themeIndex < nextThemeIndex() &&
+                  (
+                    <div className="row mb-6">
+                      <div className="col-md">
+                          <div className="col">
+                            <h6 className="card-subtitle mb-2 text-muted">Winning Bid</h6>
+                            <h2 className="card-subtitle mb-2">{bids[0]?.price} eth</h2>
+                          </div>
+                      </div>
+                      <div className="col-md">
+                          <div className="justify-content-center align-self-center">
+                          <h6 className="card-subtitle mb-2 text-muted">Winner</h6>
+                          <h2 className="card-subtitle mb-2">{bids[0]?.bidder_string}</h2>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+                {
+                  themeIndexes.themeIndex === nextThemeIndex() &&
+                  (
+                    <div>
+                      <div className="row mb-1">
+                        <h6 className="card-subtitle mb-2 text-muted">Minimum Bid:{minimumBid} eth</h6>
+                      </div>
+                      <div className="row mb-1">
+                        <div className="col-md">
+                          <input
+                            placeholder="ETH"
+                            className="mt-2 border rounded p-1"
+                            value={formInput.price}
+                            onChange={(event) => {
+                              if (isFinite(event.target.value)) {
+                                updateFormInput({ ...formInput, price: event.target.value});
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="col">
+                          <div className="col">
+                            <button className="btn btn-lg bouton-image" onClick={bid}>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+                {
+                  themeIndexes.themeIndex > nextThemeIndex() ?
+                  (
+                    <div className="row">
+                      <p>No submitted bids yet.</p>
+                    </div>
+                  ) : (
+                    <div className="row">
+                      {
+                        bids.length ?
+                        (
+                          bids.map((bid, i) => (
+                            <div key={i}>
+                            {
+                              i == 0 ? (
+                                <div className="row mb-3">
+                                  <div className="col-4 themed-grid-col bg-warning">
+                                    <div className="justify-content-center align-self-center">
+                                      <span className="glyphicon one-fine-red-dot"></span>
+                                      <small className="text-muted">
+                                      {
+                                        bid.bidder_string
+                                      }
+                                      </small>
+                                    </div>
+                                  </div>
+                                  <div className="col-4 themed-grid-col bg-warning">
+                                    <small className="text-muted">{bid.price} MATIC</small>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="row mb-3">
+                                  <div className="col-4 themed-grid-col">
+                                    <small className="text-muted">
+                                    {
+                                      bid.bidder_string
+                                    }
+                                    </small>
+                                  </div>
+                                  <div className="col-4 themed-grid-col">
+                                    <small className="text-muted">{bid.price} MATIC</small>
+                                  </div>
+                                </div>
+                              )
+                            }
+                            </div>
+                          ))
+                        ) : (
+                          <p>No submitted bids yet.</p>
+                        )
+                      }
+                    </div>
+                  )
+                }
+              </div>
+            </div>
           </div>
         </div>
       </main>

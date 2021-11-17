@@ -2,3 +2,133 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+.carousel {
+  background: black;
+}
+.w300-px-wide {
+  width: 100% !important;
+}
+.one-fine-dot::before {
+  content: "\25cf";
+}
+
+.one-fine-red-dot::before {
+  content: "\25cf";
+  color: red;
+}
+
+.one-fine-empty-dot::before {
+  content: "\25cb";
+}
+
+.lead .one-fine-dot {
+  font-size: 1.5em;
+}
+.bouton-image {
+    background-image : url(/button.png);
+    background-size: cover;
+  width: 100%;
+  height: 80px;
+}
+.bg-header{
+  position: relative;
+  z-index: 1;
+   font-family: 'ChaChicleRegular';
+   font-weight: normal;
+   font-style: normal;
+   height: 80px;
+     font-size: 25px;
+}
+.bg-monkey {
+  font-size: 65px;
+}
+.bg-title {
+  position: relative;
+    top: -55px;
+}
+.bg-link-treasury {
+  top: -180px;
+  left: 480px;
+  position: relative;
+}
+.bg-link-connect {
+  bottom: 240px;
+  left: 680px;
+  position: relative;
+}
+.bg-link-dao {
+  bottom: 220px;
+  left: 470px;
+  position: relative;
+}
+.bg-link-docs {
+  bottom: 280px;
+  left: 680px;
+  position: relative;
+}
+.bg-link-theme {
+  bottom: 320px;
+  left: 840px;
+  position: relative;
+}
+.svg0 {
+  height: 190px;
+  width: 300px;
+  top: -39px;
+  position: fixed;
+  z-index: 0
+}
+.svg1 {
+  height: 80px;
+  width: 280px;
+  top: -28px;
+  left: -130px;
+  position: relative;
+  z-index: 0
+}
+.svg2 {
+  height: 80px;
+  width: 280px;
+  bottom: 10px;
+  right: 90px;
+  position: relative;
+  z-index: 0
+}
+.svg3 {
+  height: 80px;
+  width: 280px;
+  top: -32px;
+  right: 60px;
+  position: relative;
+  z-index: 0
+}
+.svg4 {
+  height: 80px;
+  width: 280px;
+  top: -20px;
+  right: 50px;
+  position: relative;
+  z-index: 0
+}
+.svg5 {
+  height: 80px;
+  width: 280px;
+  top: -28px;
+  right: 2px;
+  position: relative;
+  z-index: 0
+}
+.svg6 {
+  height: 80px;
+  width: 280px;
+  bottom: 1px;
+  right: 30px;
+  position: relative;
+  z-index: 0
+}
+path {
+  fill: #E7BC23;
+  //stroke: black;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}

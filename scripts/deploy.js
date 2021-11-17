@@ -1,5 +1,8 @@
 const hre = require("hardhat");
 const fs = require('fs');
+const envChainId = "0x7a69"; //hardhat
+//mumbai 0x13881
+//polygon 0x89
 
 async function main() {
   const NFTMarket = await hre.ethers.getContractFactory("NFTMarket");
@@ -15,6 +18,7 @@ async function main() {
   let config = `
   export const nftmarketaddress = "${nftMarket.address}"
   export const nftaddress = "${nft.address}"
+  export const envChainId = "${envChainId}"
   `
 
   let data = JSON.stringify(config)
