@@ -658,9 +658,9 @@ export default function Home() {
                       <Carousel activeIndex={index} onSelect={handleSelect}>
                          {nfts.map((nft, i) => {
                           return (
-                            <Carousel.Item key={i}>
-                              <img
-                                className="d-block w-100"
+                            <Carousel.Item key={i} style={{height: '600px'}}>
+                              <Image
+                                layout='fill'
                                 src={nft.image}
                                 alt="slider image"
                               />
