@@ -118,8 +118,10 @@ export default function Home() {
             // EIP-1193 userRejectedRequest error
             // If this happens, the user rejected the connection request.
             console.log('Please connect to MetaMask.');
+            setShowModalMessage('Connection request has been rejected. Please refresh screen to try again.');
           } else {
             console.error(err);
+            setShowModalMessage(`Received an error message from your crypto wallet: ${err.message}`)
           }
         });
       window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -483,8 +485,10 @@ export default function Home() {
             // EIP-1193 userRejectedRequest error
             // If this happens, the user rejected the connection request.
             console.log('Please connect to MetaMask.');
+            setShowModalMessage('Connection request has been rejected. Please refresh screen to try again.');
           } else {
             console.error(err);
+            setShowModalMessage(`Received an error message from your crypto wallet: ${err.message}`)
           }
         })
     } else {
@@ -508,8 +512,10 @@ export default function Home() {
             // EIP-1193 userRejectedRequest error
             // If this happens, the user rejected the connection request.
             console.log('Please connect to MetaMask.');
+            setShowModalMessage('Connection request has been rejected. Please refresh screen to try again.');
           } else {
             console.error(err);
+            setShowModalMessage(`Received an error message from your crypto wallet: ${err.message}`)
           }
         })
     }
@@ -525,8 +531,10 @@ export default function Home() {
             // EIP-1193 userRejectedRequest error
             // If this happens, the user rejected the connection request.
             console.log('Please connect to MetaMask.');
+            setShowModalMessage('Connection request has been rejected. Please refresh screen to try again.');
           } else {
             console.error(err);
+            setShowModalMessage(`Received an error message from your crypto wallet: ${err.message}`)
           }
         })
     } else {
