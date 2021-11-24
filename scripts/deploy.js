@@ -1,6 +1,6 @@
 const hre = require("hardhat");
 const fs = require('fs');
-const envChainId = "0x7a69"; //hardhat
+const envChainId = "0x7a69"; //localhost
 //mumbai 0x13881
 //polygon 0x89
 const monkey_config = require('../monkey_config.json')
@@ -17,6 +17,7 @@ async function main() {
   console.log("nft deployed to:", nft.address);
 
   let contract_owner = monkey_config[hre.network.name]['contract_owner']['address']
+  let envChainId = monkey_config[hre.network.name]['chainId']
 
   let config = `
   export const nftmarketaddress = "${nftMarket.address}"

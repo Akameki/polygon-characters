@@ -453,7 +453,7 @@ export default function Home() {
       setShowModal(false)
       setShowModalMinting(false)
     } else {
-      setShowModalMessage("Error - Please connect to MetaMask and try again.")
+      setShowModalMessage("Error - Please check your MetaMask network connection and try again.")
     }
   }
 
