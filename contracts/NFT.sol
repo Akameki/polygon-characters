@@ -26,7 +26,7 @@ contract NFT is ERC721URIStorage {
         return newItemId;
     }
 
-    function contractURI() public view returns (string memory) {
+    function contractURI() public pure returns (string memory) {
         return "https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmonkey-contract.json?alt=media&token=0c19430b-2c88-4b3c-89f2-92d85ffee1d1";
     }
 }
