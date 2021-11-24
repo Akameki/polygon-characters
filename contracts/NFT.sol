@@ -12,7 +12,7 @@ contract NFT is ERC721URIStorage {
     Counters.Counter private _tokenIds;
     address contractAddress;
 
-    constructor(address marketplaceAddress) ERC721("Metaverse", "METT") {
+    constructor(address marketplaceAddress) ERC721("Monkey King", "MONKEYKING") {
         contractAddress = marketplaceAddress;
     }
 
@@ -24,5 +24,9 @@ contract NFT is ERC721URIStorage {
         _setTokenURI(newItemId, tokenURI);
         setApprovalForAll(contractAddress, true);
         return newItemId;
+    }
+
+    function contractURI() public view returns (string memory) {
+        return "https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmonkey-contract.json?alt=media&token=0c19430b-2c88-4b3c-89f2-92d85ffee1d1";
     }
 }

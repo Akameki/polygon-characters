@@ -6,6 +6,7 @@ import Image from 'next/image'
 import {
   nftmarketaddress, nftaddress
 } from '../config'
+import monkeymint_config from '../monkeymint_config.json'
 import { useRouter } from 'next/router'
 
 import Link from 'next/link'
@@ -27,9 +28,7 @@ export default function ByAuthor() {
   const [address, setAddress] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const router = useRouter()
-  const { theme } = router.query
-  const [onSaleIndex, setOnSaleIndex] = useState(0)
-  const [optionsState, setOptionsState] = useState('')
+  const { home } = router.query
 
   async function getMETT(currentAccount) {
     const web3Modal = new Web3Modal()
@@ -51,17 +50,7 @@ export default function ByAuthor() {
       console.log('Please connect to MetaMask.');
     } else if (accounts[0] !== address) {
       setAddress(accounts[0]);
-      console.log("currentAccount", accounts[0]);
-      //getMETT(accounts[0]);
     }
-  }
-
-  function handleChange(event) {
-    setOptionsState(event.target.value);
-  }
-  function handleChainChanged(_chainId) {
-    // We recommend reloading the page, unless you must do otherwise
-    //window.location.reload();
   }
 
   // While you are awaiting the call to eth_requestAccounts, you should disable
@@ -106,16 +95,31 @@ export default function ByAuthor() {
     };
 
     const app = initializeApp(firebaseConfig)
-
     const db = getFirestore(app)
     //const auth = getAuth(app)
 
+    const auctionRef = collection(db, "auctions");
+    const auction_query = query(auctionRef,
+      orderBy("theme"),
+      orderBy("createdAt", "desc"));
+    const auctionQuerySnapshot = await getDocs(auction_query);
+    const bidData = [];
+    auctionQuerySnapshot.forEach((doc) => {
+      let data = doc.data();
+      let item = {
+        id: doc.id,
+        price: data.price,
+        theme: data.theme,
+        bidder: data.bidder,
+        createdAt: new Date(data.createdAt).toString()
+      }
+      bidData.push(item)
+    })
 
     const nounsRef = collection(db, "characters");
     const q = query(nounsRef,
       orderBy("theme"),
       orderBy("createdAt", "asc"));
-
     const querySnapshot = await getDocs(q);
     const items = [];
     querySnapshot.forEach((doc) => {
@@ -135,8 +139,23 @@ export default function ByAuthor() {
       items.push(item)
     })
     const myItems = items.filter(i => i.owner == address)
+
+    myItems.forEach((item, i) => {
+      const submitted = bidData.filter(bid => bid.theme == item.theme)
+      var basePrice = 0
+      var lastBidder = ''
+      if (submitted.length > 0) {
+        let winningBid = submitted.reduce((prev, curr) => {
+          return prev.price > curr.price ? prev : curr;
+        })
+        basePrice = Number(winningBid.price)
+        lastBidder = winningBid.bidder
+      }
+      item.winningBid = basePrice
+      item.winningBidder = lastBidder
+    });
+
     setNfts(myItems)
-    setOnSaleIndex((myItems.length - 1) % ((new Date()).getHours()))
     setLoadingState('loaded')
   }
 
@@ -146,11 +165,7 @@ export default function ByAuthor() {
     return function cleanup() {
       //mounted = false
     }
-  }, [optionsState])
-
-  useEffect(() => {
-    if (theme) setOptionsState(theme);
-  }, [theme]);
+  }, [address])
 
   async function mintFirebase(nft) {
     try {
@@ -162,7 +177,8 @@ export default function ByAuthor() {
 
       /* next, create the item */
       let contract = new ethers.Contract(nftaddress, NFT.abi, signer)
-      let transaction = await contract.createToken(nft.image)
+      let m = monkeymint_config[nft.name]
+      let transaction = await contract.createToken(m.uri)
       setShowModal(false)
       setShowModalMinting(true)
       let tx = await transaction.wait()
@@ -183,7 +199,6 @@ export default function ByAuthor() {
       };
 
       const app = initializeApp(firebaseConfig)
-
       const db = getFirestore(app)
       const characterRef = doc(db, "characters", nft.id);
       // Set the "capital" field of the city 'DC'
@@ -251,23 +266,13 @@ export default function ByAuthor() {
   }
   if (loadingState === 'loaded' && !nfts.length && !bought.length) return (
     <div>
-      <div className="header">{address}</div>
       <main>
         <section className="py-5 text-center container">
           <div className="row py-lg-5">
             <div className="col-lg-6 col-md-8 mx-auto">
-              <h1 className="fw-light">Explore Themes in Art</h1>
-              <p className="lead text-muted">A themed based art gallery.</p>
+              <h1 className="fw-light">Mint Your Own Themes</h1>
             </div>
           </div>
-            <select value={optionsState} onChange={handleChange}>
-              <option value="" disabled default>Select your character theme</option>
-              <option value="Stone Age">Stone Age</option>
-              <option value="Space">Space</option>
-              <option value="Evil and Justice">Evil and Justice</option>
-              <option value="Courage and Perseverance">Courage and Perseverance</option>
-              <option value="Crypto">Crypto</option>
-            </select>
         </section>
       </main>
     </div>
@@ -294,23 +299,13 @@ export default function ByAuthor() {
   )
   return (
     <div>
-      <div className="header">{address}</div>
       <main>
         <section className="py-5 text-center container">
           <div className="row py-lg-5">
             <div className="col-lg-6 col-md-8 mx-auto">
-              <h1 className="fw-light">Explore Themes in Art</h1>
-              <p className="lead text-muted">A themed based art gallery.</p>
+              <h1 className="fw-light">Mint Your Own Themes</h1>
             </div>
           </div>
-            <select value={optionsState} onChange={handleChange}>
-              <option value="" disabled default>Select your character theme</option>
-              <option value="Stone Age">Stone Age</option>
-              <option value="Space">Space</option>
-              <option value="Evil and Justice">Evil and Justice</option>
-              <option value="Courage and Perseverance">Courage and Perseverance</option>
-              <option value="Crypto">Crypto</option>
-            </select>
         </section>
         <div className="album py-5 bg-light">
           <div className="container">
@@ -318,7 +313,7 @@ export default function ByAuthor() {
               {
                 nfts.map((nft, i) => (
                   <div key={i} className="col">
-                    <div className={onSaleIndex == i ? "card shadow-sm border-5 border-primary" : 'card shadow-sm'}>
+                    <div className="card shadow-sm border-5">
                       <div className="card-header text-center">
                         {nft.theme}
                       </div>
@@ -328,17 +323,10 @@ export default function ByAuthor() {
                       <div className="card-body">
                       <h5 className="card-title">{nft.name}</h5>
                       <p className="card-text">{nft.description}</p>
-                      <p className="card-text"><small className="text-muted">{nft.seller}</small></p>
+                      <p className="card-text"><small className="text-muted">{nft.winningBidder}</small></p>
                       <div className="d-flex justify-content-between align-items-center">
-                        <div className="btn-group">
-                          <Link href={{
-                            pathname: "/auctions",
-                            query: {theme: nft.theme}
-                          }} >
-                            <button type="button" className="btn btn-sm btn-outline-secondary">View Auctions</button>
-                          </Link>
-                        </div>
-                        <small className="text-muted">{nft.price} MATIC</small>
+                        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => mintFirebase(nft)}>Mint</button>
+                        <small className="text-muted">{nft.winningBid} MATIC</small>
                       </div>
                       </div>
                     </div>

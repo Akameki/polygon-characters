@@ -1,0 +1,8 @@
+{
+  "name": "Monkey King by MCToys",
+  "description": "With Monkey King you'll have no more worries!",
+  "image": "https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmonkey-logo.png?alt=media&token=04c60f32-d70d-42fe-babf-1530d2f3b9d8",
+  "external_link": "MonkeyKing.wtf",
+  "seller_fee_basis_points": 100,
+  "fee_recipient": "0x31b4cE41b12eBb0d1E7beEE20997069EBC20545D"
+}

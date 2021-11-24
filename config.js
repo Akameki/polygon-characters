@@ -1,4 +1,6 @@
 
-  export const nftmarketaddress = "0x5e11B063413542B0001a1B42a616bF6D937BB5EE"
-  export const nftaddress = "0x5a166305C7720f32f031bad44Eba984F57F451B2"
-  export const envChainId = "0x13881"
+  export const nftmarketaddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+  export const nftaddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+  export const envChainId = "0x7a69"
+  export const contract_owner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  

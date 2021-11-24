@@ -1,0 +1,17 @@
+{
+  "Monkey1" : {
+    "name" : "monkey0.json",
+    "description" : "孫悟空",
+    "uri" : "https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmonkey0.json?alt=media&token=2bb74b7b-1589-46c1-9333-05735656a965"
+  },
+  "Monkey2" : {
+    "name" : "monkey1.json",
+    "description" : "豬八戒",
+    "uri" : "https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmonkey1.json?alt=media&token=f197c559-ebc4-4859-ae93-a7ad898e0d89"
+  },
+  "Monkey3" : {
+    "name" : "monkey2.json",
+    "description" : "唐三藏",
+    "uri" : "https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmonkey2.json?alt=media&token=a9396b42-ff95-486e-a7e5-83b2f262b9ec"
+  }
+}

@@ -9,7 +9,7 @@ import Pagination from 'react-bootstrap/Pagination';
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
-  nftaddress, nftmarketaddress, envChainId
+  nftaddress, nftmarketaddress, envChainId, contract_owner
 } from '../config'
 import '../styles/Home.module.css'
 
@@ -31,7 +31,7 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState('')
   const router = useRouter()
   const [themeIndexes, updateThemeIndexes] = useState({ themeIndex: nextThemeIndex(), themeItemIndex: nextItemIndex(), title: `Week ${nextThemeIndex() + 1}` })
-  const themes = ["Courage and Perseverance","Crypto",
+  const themes = [
     "Monkey King Adventure",
     "Monkey King Back To School",
     "Monkey King Office Survival",
@@ -143,7 +143,7 @@ export default function Home() {
 
   function nextThemeIndex() {
     const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 16, 0)
+    const difference = Math.max(b.getUTCDate() - 24, 0)
     return difference
   }
 
@@ -332,24 +332,9 @@ export default function Home() {
     }
   }, [themeIndexes])
 
-
   async function mintFirebase(nft) {
     try {
       setShowModal(true)
-      const web3Modal = new Web3Modal()
-      const connection = await web3Modal.connect()
-      const provider = new ethers.providers.Web3Provider(connection)
-      const signer = provider.getSigner()
-
-      /* next, create the item */
-      let contract = new ethers.Contract(nftaddress, NFT.abi, signer)
-      let transaction = await contract.createToken(nft.image)
-      setShowModal(false)
-      setShowModalMinting(true)
-      let tx = await transaction.wait()
-      let event = tx.events[0]
-      let value = event.args[2]
-      let tokenId = value.toNumber()
 
       const firebaseConfig = {
         // INSERT YOUR OWN CONFIG HERE
@@ -742,15 +727,40 @@ export default function Home() {
                   (
                     <div className="row mb-6">
                       <div className="col-md">
+                      {
+                        bids.length ? (
                           <div className="col">
                             <h6 className="card-subtitle mb-2 text-muted">Winning Bid</h6>
                             <h2 className="card-subtitle mb-2">{bids[0]?.price} eth</h2>
                           </div>
+                        ) : (
+                          <div className="col">
+                            <h6 className="card-subtitle mb-2 text-muted">Winning Bid</h6>
+                            <h2 className="card-subtitle mb-2">N/A</h2>
+                          </div>
+                        )
+                      }
                       </div>
                       <div className="col-md">
-                          <div className="justify-content-center align-self-center">
+                        <div className="justify-content-center align-self-center">
                           <h6 className="card-subtitle mb-2 text-muted">Winner</h6>
-                          <h2 className="card-subtitle mb-2">{bids[0]?.bidder_string}</h2>
+                          {
+                            bids.length ? (
+                              <div>
+                                <h2 className="card-subtitle mb-2">{bids[0]?.bidder_string}</h2>
+                                {
+                                  bids[0].bidder.toUpperCase() === address.toUpperCase() &&
+                                  <Link href="/themes">
+                                    <a className="btn bouton-image-mint"></a>
+                                  </Link>
+                                }
+                              </div>
+                            ) : (
+                              <div>
+                                <h2 className="card-subtitle mb-2">N/A</h2>
+                              </div>
+                            )
+                          }
                         </div>
                       </div>
                     </div>
@@ -760,11 +770,9 @@ export default function Home() {
                   themeIndexes.themeIndex === nextThemeIndex() &&
                   (
                     <div>
-                      <div className="row mb-1">
-                        <h6 className="card-subtitle mb-2 text-muted">Minimum Bid:{minimumBid} eth</h6>
-                      </div>
-                      <div className="row mb-1">
+                      <div className="row mb-6">
                         <div className="col-md">
+                          <h6 className="card-subtitle mb-2 text-muted">Minimum Bid:{minimumBid} eth</h6>
                           <input
                             placeholder="ETH"
                             className="mt-2 border rounded p-1"
@@ -776,11 +784,9 @@ export default function Home() {
                             }}
                           />
                         </div>
-                        <div className="col">
-                          <div className="col">
-                            <button className="btn btn-lg bouton-image" onClick={bid}>
+                        <div className="col-md">
+                            <button className="btn bouton-image" onClick={bid}>
                             </button>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -789,11 +795,11 @@ export default function Home() {
                 {
                   themeIndexes.themeIndex > nextThemeIndex() ?
                   (
-                    <div className="row">
-                      <p>No submitted bids yet.</p>
+                    <div className="row mb-6">
+                      <p>Auction has not started yet.</p>
                     </div>
                   ) : (
-                    <div className="row">
+                    <div className="row mb-6">
                       {
                         bids.length ?
                         (
@@ -834,7 +840,16 @@ export default function Home() {
                             </div>
                           ))
                         ) : (
-                          <p>No submitted bids yet.</p>
+                          themeIndexes.themeIndex < nextThemeIndex() ?
+                          (
+                            <div className="row mb-6">
+                              <p>Auction has expired.</p>
+                            </div>
+                          ) : (
+                            <div className="row mb-6">
+                              <p>No submitted bids yet.</p>
+                            </div>
+                          )
                         )
                       }
                     </div>

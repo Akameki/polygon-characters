@@ -10,10 +10,14 @@ function Marketplace({ Component, pageProps }) {
       <nav className="border-b p-6 bg-cover">
         <div className="flex mt-4">
           <div className="bg-header">
+            <Link href="/">
             <div className="text-center bg-title">
-              <h1 className="bg-monkey">Monkey</h1>
-              <h1 className="bg-monkey">King</h1>
+              <button>
+                <h1 className="bg-monkey">Monkey</h1>
+                <h1 className="bg-monkey">King</h1>
+              </button>
             </div>
+          </Link>
             <p className="bg-link-treasury">
                 <a href="#" className="text-black">
                     <u>TREASURY 100</u>
