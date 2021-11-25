@@ -108,6 +108,7 @@ export default function Home() {
   function handleDisconnect(error) {
     console.log('handleDisconnect is fired upon changing network', error);
   }
+
   useEffect(() => {
     if (window.ethereum) {
       window.ethereum
@@ -143,7 +144,7 @@ export default function Home() {
 
   function nextThemeIndex() {
     const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 24, 0)
+    const difference = Math.max(b.getUTCDate() - 25, 0)
     return difference
   }
 
@@ -237,15 +238,28 @@ export default function Home() {
         item.bidder_string = item.bidder ? [data.bidder.substr(0, 4), data.bidder.substr(38, 4)].join('...') : ''
         bidData.push(item)
       })
-
       submitted = bidData.filter(i => i.theme == theme)
       lowestBid = ((submitted[0]?.price || 0) + 0.2).toFixed(2)
     }
     setNfts(saleItems || [])
     setTheme(theme)
+    lookupBidderAddress(submitted)
     setBids(submitted)
     setMinimumBid(lowestBid)
     setLoadingState('loaded')
+  }
+
+  async function lookupBidderAddress(arg) {
+    const web3Modal = new Web3Modal()
+    const connection = await web3Modal.connect()
+    const provider = new ethers.getDefaultProvider()
+    for (var i=0; i<arg.length; i++) {
+      let item = arg[i]
+      if (item.bidder) {
+        let bidder_address = await provider.lookupAddress(item.bidder)
+        if (bidder_address) item.bidder_string = bidder_address
+      }
+    }
   }
 
     async function settle() {

@@ -24,9 +24,11 @@ function Marketplace({ Component, pageProps }) {
                 </a>
             </p>
             <p className="bg-link-connect">
+              <Link href="/connectWallet">
                 <a href="#" className="text-black">
                     <u>CONNECT WALLET</u>
                 </a>
+              </Link>
             </p>
             <p className="bg-link-dao">
                 <a href="#" className="text-black">
