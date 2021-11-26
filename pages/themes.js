@@ -138,8 +138,7 @@ export default function ByAuthor() {
       }
       items.push(item)
     })
-    const myItems = items.filter(i => i.owner == address)
-
+    const myItems = items.filter(i => i.owner.toUpperCase() === address.toUpperCase())
     myItems.forEach((item, i) => {
       const submitted = bidData.filter(bid => bid.theme == item.theme)
       var basePrice = 0
@@ -209,6 +208,8 @@ export default function ByAuthor() {
       loadFirebase()
     } catch (error) {
       setErrorMessage(error.message)
+      setShowModal(false)
+      setShowModalMinting(true)
     }
   }
   async function loadNFTs() {
@@ -279,7 +280,6 @@ export default function ByAuthor() {
   )
   if (showModal) return (
     <div>
-      <div className="header">{address}</div>
       <div className="p-4">
         <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>
         <p>{errorMessage}</p>
@@ -289,7 +289,6 @@ export default function ByAuthor() {
   )
   if (showModalMinting) return (
     <div>
-      <div className="header">{address}</div>
       <div className="p-4">
         <p>Please wait. We are waiting for Smart Contract to finish processing.</p>
         <p>{errorMessage}</p>

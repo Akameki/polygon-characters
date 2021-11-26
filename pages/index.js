@@ -9,7 +9,7 @@ import Pagination from 'react-bootstrap/Pagination';
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
-  nftaddress, nftmarketaddress, envChainId, contract_owner
+  nftaddress, nftmarketaddress, envChainName, envChainId, contract_owner
 } from '../config'
 import '../styles/Home.module.css'
 
@@ -92,51 +92,88 @@ export default function Home() {
   // For now, 'eth_accounts' will continue to always return an array
   function handleAccountsChanged(accounts) {
     if (accounts.length === 0) {
-      // MetaMask is locked or the user has not connected any accounts
-      console.log('Please connect to MetaMask.');
+      throw `MetaMask is locked or the user has not connected any accounts`
     } else if (accounts[0] !== address) {
-      setAddress(accounts[0]);
-      console.log("handleAccountsChanged is fired", accounts[0]);
+      setAddress(accounts[0])
+      console.log("handleAccountsChanged event is fired", accounts[0]);
     }
   }
   function handleChainChanged(chainId) {
-    console.log('handleChainChanged is fired upon changing network', chainId);
+    console.log('handleChainChanged event is fired upon changing network', chainId);
+    if (chainId !== envChainId) {
+      throw `Error - Is MetaMask connected to ${envChainName}?`
+    }
   }
   function handleConnect(info) {
-    console.log('handleConnect is fired upon changing network', info);
+    console.log('handleConnect event is fired upon changing network', info);
   }
   function handleDisconnect(error) {
-    console.log('handleDisconnect is fired upon changing network', error);
+    console.log('handleDisconnect event is fired upon changing network', error);
+  }
+  function handleNetworkChanged(newNetwork, oldNetwork) {
+    console.log('handleNetworkChanged event is fired upon changing network', newNetwork, oldNetwork)
+    // When a Provider makes its initial connection, it emits a "network"
+    // event with a null oldNetwork along with the newNetwork. So, if the
+    // oldNetwork exists, it represents a changing network
+    if (oldNetwork) {
+      window.location.reload()
+    }
   }
 
-  useEffect(() => {
+  async function validateOnLoad() {
     if (window.ethereum) {
-      window.ethereum
-        .request({ method: 'eth_requestAccounts' })
-        .then(handleAccountsChanged)
-        .catch((err) => {
+      try {
+        let result = await Promise.all([
+          window.ethereum.request({ method: 'eth_requestAccounts' }),
+          window.ethereum.request({ method: 'eth_chainId' }),
+          window.ethereum.request({ method: "wallet_requestPermissions",
+            params: [
+              {
+                eth_accounts: {}
+              }
+            ]
+          })
+        ]).catch((err) => {
           if (err.code === 4001) {
             // EIP-1193 userRejectedRequest error
             // If this happens, the user rejected the connection request.
-            console.log('Please connect to MetaMask.');
-            setShowModalMessage('Connection request has been rejected. Please refresh screen to try again.');
+            throw 'Connection request has been rejected. Please refresh screen to try again.'
           } else {
-            console.error(err);
-            setShowModalMessage(`Received an error message from your crypto wallet: ${err.message}`)
+            throw `Received an error message from your crypto wallet: ${err.message}`
           }
-        });
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-      window.ethereum.on('connect', handleConnect);
-      window.ethereum.on('disconnect', handleDisconnect);
-
+        })
+        if (result) {
+          let [accounts, chainId, permissions] = result
+          handleAccountsChanged(accounts)
+          handleChainChanged(chainId)
+        }
+      } catch(error) {
+        setShowModalMessage(error.message || error)
+      }
     } else {
-      setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
+      throw "Non-Ethereum browser detected. You should consider installing MetaMask."
     }
-    return function cleanup() {
-      //mounted = false
-    }
-  }, [])
+  }
+
+  // useEffect(() => {
+  //   try {
+  //     validateOnLoad()
+  //     window.ethereum.on('accountsChanged', handleAccountsChanged)
+  //     window.ethereum.on('chainChanged', handleChainChanged)
+  //     window.ethereum.on('connect', handleConnect)
+  //     window.ethereum.on('disconnect', handleDisconnect)
+  //       // Force page refreshes on network changes
+  //       // The "any" network will allow spontaneous network changes
+  //     let provider = new ethers.providers.Web3Provider(window.ethereum, "any")
+  //     provider
+  //       .on("network", handleNetworkChanged)
+  //   } catch(error) {
+  //     setShowModalMessage(error.message || error)
+  //   }
+  //   return function cleanup() {
+  //     //mounted = false
+  //   }
+  // }, [])
 
   function endCountdownTime(targetDay) {
     return Math.floor(Date.now() / 1000) + (targetDay * 10)
@@ -144,7 +181,7 @@ export default function Home() {
 
   function nextThemeIndex() {
     const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 25, 0)
+    const difference = Math.max(b.getUTCDate() - 26, 0)
     return difference
   }
 
@@ -298,7 +335,7 @@ export default function Home() {
         bidData.push(item)
       })
 
-      const submitted = bidData.filter(i => i.theme == theme)
+      const submitted = bidData.filter(i => i.theme.toUpperCase() === theme.toUpperCase())
       if (submitted.length > 0) {
         let winningBid = submitted.reduce((prev, curr) => {
           return prev.price > curr.price ? prev : curr;
@@ -324,7 +361,7 @@ export default function Home() {
             theme: data.theme
           }
 
-          if (item.theme == theme) {
+          if (item.theme.toUpperCase() === theme.toUpperCase()) {
             const characterRef = doc(db, "characters", item.id);
             // Set the "capital" field of the city 'DC'
             updateDoc(characterRef, {
@@ -373,259 +410,219 @@ export default function Home() {
       setShowModalMinting(false)
       //loadFirebase()
     } catch (error) {
-      setShowModalMessage(error.message)
-    }
-  }
-
-  // For now, 'eth_accounts' will continue to always return an array
-  async function handleChainIdUponBidding(chainId) {
-    console.log("*****envChainId",envChainId)
-    console.log("*****eth_chainId",chainId)
-    //0x89 Polygon
-    //0x13881 Mumbai
-    //31337 hardhat
-    if (chainId === envChainId) {
-      try {
-        const firebaseConfig = {
-          // INSERT YOUR OWN CONFIG HERE
-          apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-          authDomain: "pay-a-vegan.firebaseapp.com",
-          databaseURL: "https://pay-a-vegan.firebaseio.com",
-          projectId: "pay-a-vegan",
-          storageBucket: "pay-a-vegan.appspot.com",
-          messagingSenderId: "587888386485",
-          appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-          measurementId: "G-MGJK6GF9YW"
-        };
-
-        const app = initializeApp(firebaseConfig)
-        const db = getFirestore(app)
-        const auctionRef = collection(db, "auctions");
-        const auction_query = query(auctionRef,
-          orderBy("theme"),
-          orderBy("createdAt", "desc"));
-        const auctionQuerySnapshot = await getDocs(auction_query);
-
-        const bidData = [];
-        auctionQuerySnapshot.forEach((doc) => {
-          let data = doc.data();
-          let item = {
-            id: doc.id,
-            price: data.price,
-            theme: data.theme,
-            bidder: data.bidder,
-            createdAt: new Date(data.createdAt).toString()
-          }
-          bidData.push(item)
-        })
-
-        const submitted = bidData.filter(i => i.theme == theme)
-        var basePrice = 0
-        var lastBidder = ''
-        if (submitted.length > 0) {
-          let winningBid = submitted.reduce((prev, curr) => {
-            return prev.price > curr.price ? prev : curr;
-          })
-          basePrice = Number(winningBid.price)
-          lastBidder = winningBid.bidder
-        }
-        setShowModal(true)
-        setShowModalMinting(true)
-        setShowModalMessage('')
-        if (basePrice < Number(formInput.price)) {
-          let eth_price = ethers.utils.parseUnits(formInput.price, 'ether')
-          let eth_basePrice = ethers.utils.parseUnits(basePrice.toString(), 'ether')
-
-          const web3Modal = new Web3Modal()
-          const connection = await web3Modal.connect()
-          const provider = new ethers.providers.Web3Provider(connection)
-          const signer = provider.getSigner()
-
-          /* next, create the item */
-          let contract = new ethers.Contract(nftmarketaddress, Market.abi, signer)
-          //const price = ethers.utils.parseUnits(nft.price.toString(), 'ether')
-          let transaction = await contract.updateBid(lastBidder, eth_basePrice, {
-            value: eth_price
-          })
-          await transaction.wait()
-
-          const colRef = collection(db, 'auctions')
-          addDoc(colRef, {
-            price: Number(formInput.price),
-            bidder: address,
-            theme: theme,
-            createdAt: Date.now()
-          });
-
-          updateThemeIndexes({ ...themeIndexes })
-        } else {
-          setShowModalMessage("Error - please enter a higher bid amount and try again.")
-        }
-      } catch (error) {
-        setShowModalMessage(error.message)
-      }
-      setShowModal(false)
-      setShowModalMinting(false)
-    } else {
-      setShowModalMessage("Error - Please check your MetaMask network connection and try again.")
-    }
-  }
-
-  // For now, 'eth_accounts' will continue to always return an array
-  function handleGetBalanceUponBidding(balance) {
-    let read = parseInt(balance) / 10**18 // will need change based on what token
-    console.log( "Wallet Token Balance:" + read.toFixed(5) )
-    if (read > minimumBid) {
-      window.ethereum
-        .request({ method: 'eth_chainId' })
-        .then(handleChainIdUponBidding)
-        .catch((err) => {
-          if (err.code === 4001) {
-            // EIP-1193 userRejectedRequest error
-            // If this happens, the user rejected the connection request.
-            console.log('Please connect to MetaMask.');
-            setShowModalMessage('Connection request has been rejected. Please refresh screen to try again.');
-          } else {
-            console.error(err);
-            setShowModalMessage(`Received an error message from your crypto wallet: ${err.message}`)
-          }
-        })
-    } else {
-      setShowModalMessage("Error - Your wallet has a balance less than the Minimum Bid.")
-    }
-  }
-
-  // For now, 'eth_accounts' will continue to always return an array
-  function handleRequestAccountsUponBidding(accounts) {
-    if (accounts.length === 0) {
-      // MetaMask is locked or the user has not connected any accounts
-      console.log('Please connect to MetaMask.');
-      setShowModalMessage("Error - Please connect to MetaMask and try again.")
-    } else {
-      window.ethereum
-        .request({
-          method: 'eth_getBalance', params: [accounts[0],"latest"] })
-        .then(handleGetBalanceUponBidding)
-        .catch((err) => {
-          if (err.code === 4001) {
-            // EIP-1193 userRejectedRequest error
-            // If this happens, the user rejected the connection request.
-            console.log('Please connect to MetaMask.');
-            setShowModalMessage('Connection request has been rejected. Please refresh screen to try again.');
-          } else {
-            console.error(err);
-            setShowModalMessage(`Received an error message from your crypto wallet: ${err.message}`)
-          }
-        })
+      setShowModalMessage(error.message || error)
     }
   }
 
   async function bid() {
+    try {
+      let bidAddress = await validateBidding()
+      await commitBidding(bidAddress)
+    } catch(error) {
+      setShowModalMessage(error.message || error)
+    }
+    setShowModal(false)
+    setShowModalMinting(false)
+  }
+
+  async function validateBidding() {
     if (window.ethereum) {
-      window.ethereum
-        .request({ method: 'eth_requestAccounts' })
-        .then(handleRequestAccountsUponBidding)
-        .catch((err) => {
-          if (err.code === 4001) {
-            // EIP-1193 userRejectedRequest error
-            // If this happens, the user rejected the connection request.
-            console.log('Please connect to MetaMask.');
-            setShowModalMessage('Connection request has been rejected. Please refresh screen to try again.');
-          } else {
-            console.error(err);
-            setShowModalMessage(`Received an error message from your crypto wallet: ${err.message}`)
+      await window.ethereum.request({ method: "wallet_requestPermissions",
+        params: [
+          {
+            eth_accounts: {}
           }
-        })
+        ]
+      })
+
+      let result = await Promise.all([
+        window.ethereum.request({ method: 'eth_requestAccounts' }),
+        window.ethereum.request({ method: 'eth_chainId' })
+      ]).catch((err) => {
+        if (err.code === 4001) {
+          // EIP-1193 userRejectedRequest error
+          // If this happens, the user rejected the connection request.
+          throw 'Connection request has been rejected. Please refresh screen to try again.'
+        } else {
+          throw `Received an error message from your crypto wallet: ${err.message}`
+        }
+      })
+      if (result) {
+        let [accounts, chainId] = result
+        handleAccountsChanged(accounts)
+        handleChainChanged(chainId)
+        let balance = await window.ethereum.request({method: 'eth_getBalance', params: [accounts[0],"latest"] })
+        let tokenBalance = parseInt(balance) / 10**18 // will need change based on what token
+        if (tokenBalance < minimumBid) {
+          throw "Error - Your wallet has a balance less than the Minimum Bid."
+        }
+        return accounts[0]
+      }
     } else {
-      setShowModalMessage("Unable to connect to a crypto wallet. Please refresh screen to try again.")
+      throw "Non-Ethereum browser detected. You should consider installing MetaMask."
+    }
+  }
+
+  async function commitBidding(bidAddress) {
+    const firebaseConfig = {
+      apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
+      authDomain: "pay-a-vegan.firebaseapp.com",
+      databaseURL: "https://pay-a-vegan.firebaseio.com",
+      projectId: "pay-a-vegan",
+      storageBucket: "pay-a-vegan.appspot.com",
+      messagingSenderId: "587888386485",
+      appId: "1:587888386485:web:3a81137924d19cbe2439fc",
+      measurementId: "G-MGJK6GF9YW"
+    };
+
+    const app = initializeApp(firebaseConfig)
+    const db = getFirestore(app)
+    const auctionRef = collection(db, "auctions");
+    const auction_query = query(auctionRef,
+      orderBy("theme"),
+      orderBy("createdAt", "desc"));
+    const auctionQuerySnapshot = await getDocs(auction_query);
+
+    const bidData = [];
+    auctionQuerySnapshot.forEach((doc) => {
+      let data = doc.data();
+      let item = {
+        id: doc.id,
+        price: data.price,
+        theme: data.theme,
+        bidder: data.bidder,
+        createdAt: new Date(data.createdAt).toString()
+      }
+      bidData.push(item)
+    })
+
+    const submitted = bidData.filter(i => i.theme.toUpperCase() === theme.toUpperCase())
+    var basePrice = 0
+    var lastBidder = ''
+    if (submitted.length > 0) {
+      let winningBid = submitted.reduce((prev, curr) => {
+        return prev.price > curr.price ? prev : curr;
+      })
+      basePrice = Number(winningBid.price)
+      lastBidder = winningBid.bidder
+    }
+
+    if (basePrice < Number(formInput.price)) {
+      let eth_price = ethers.utils.parseUnits(formInput.price, 'ether')
+      let eth_basePrice = ethers.utils.parseUnits(basePrice.toString(), 'ether')
+
+      const web3Modal = new Web3Modal()
+      const connection = await web3Modal.connect()
+      const provider = new ethers.providers.Web3Provider(connection)
+      const signer = provider.getSigner()
+
+      setShowModal(true)
+      setShowModalMinting(true)
+      let contract = new ethers.Contract(nftmarketaddress, Market.abi, signer)
+      let transaction = await contract.updateBid(lastBidder, eth_basePrice, {
+        value: eth_price
+      })
+      await transaction.wait()
+
+      const colRef = collection(db, 'auctions')
+      addDoc(colRef, {
+        price: Number(formInput.price),
+        bidder: bidAddress,
+        theme: theme,
+        createdAt: Date.now()
+      });
+
+      updateThemeIndexes({ ...themeIndexes })
+    } else {
+      throw "Error - please enter a higher bid amount and try again."
     }
   }
 
   async function nextTheme() {
-    settle()
+    settle(theme)
     updateThemeCountdown({ ...themeCountdown, themeEndTime: endCountdownTime(endThemeTime()), themeItemEndTime: endCountdownTime(endItemTime())})
     updateThemeIndexes({ ...themeIndexes, themeIndex: themeIndexes.themeIndex + 1, themeItemIndex: 0})
   }
-  async function loadNFTs() {
-      const web3Modal = new Web3Modal({
-        network: "mainnet",
-        cacheProvider: true,
-      })
-    const connection = await web3Modal.connect()
-    const provider = new ethers.providers.Web3Provider(connection)
-    const tokenContract = new ethers.Contract(nftaddress, NFT.abi, provider)
-    const marketContract = new ethers.Contract(nftmarketaddress, Market.abi, provider)
-    const data = await marketContract.fetchMarketItems()
-
-    const items = await Promise.all(data.map(async i => {
-      const tokenUri = await tokenContract.tokenURI(i.tokenId)
-      const meta = await axios.get(tokenUri)
-      let price = ethers.utils.formatUnits(i.price.toString(), 'ether')
-      let item = {
-        price,
-        tokenId: i.tokenId.toNumber(),
-        seller: i.seller,
-        owner: i.owner,
-        image: meta.data.image,
-        name: meta.data.name,
-        auction: i.auction,
-        endTime: i.endTime,
-        description: meta.data.description,
-      }
-      return item
-    }))
-    setNfts(items)
-    setLoadingState('loaded')
-  }
-  async function buyFirebase(nft) {
-    if (!window.ethereum) {
-      setShowModalMessage("Unable to purchase without a crypto wallet. Please refresh screen to try again.")
-    } else {
-      setShowModal(true)
-      const firebaseConfig = {
-        // INSERT YOUR OWN CONFIG HERE
-        apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-        authDomain: "pay-a-vegan.firebaseapp.com",
-        databaseURL: "https://pay-a-vegan.firebaseio.com",
-        projectId: "pay-a-vegan",
-        storageBucket: "pay-a-vegan.appspot.com",
-        messagingSenderId: "587888386485",
-        appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-        measurementId: "G-MGJK6GF9YW"
-      };
-
-      const app = initializeApp(firebaseConfig)
-
-      const db = getFirestore(app)
-      const characterRef = doc(db, "characters", nft.id);
-      // Set the "capital" field of the city 'DC'
-      await updateDoc(characterRef, {
-        sold: true,
-        owner: address,
-        price: nft.price
-      });
-      setShowModal(false)
-      //loadFirebase()
-
-      router.push('/my-purchase')
-    }
-  }
-  async function buyNft(nft) {
-    setShowModal(true)
-    const web3Modal = new Web3Modal()
-    const connection = await web3Modal.connect()
-    const provider = new ethers.providers.Web3Provider(connection)
-    const signer = provider.getSigner()
-    const contract = new ethers.Contract(nftmarketaddress, Market.abi, signer)
-
-    const price = ethers.utils.parseUnits(nft.price.toString(), 'ether')
-    const transaction = await contract.createMarketSale(Market, nft.tokenId, {
-      value: price
-    })
-    await transaction.wait()
-    setShowModal(false)
-    loadNFTs()
-  }
+  // async function loadNFTs() {
+  //     const web3Modal = new Web3Modal({
+  //       network: "mainnet",
+  //       cacheProvider: true,
+  //     })
+  //   const connection = await web3Modal.connect()
+  //   const provider = new ethers.providers.Web3Provider(connection)
+  //   const tokenContract = new ethers.Contract(nftaddress, NFT.abi, provider)
+  //   const marketContract = new ethers.Contract(nftmarketaddress, Market.abi, provider)
+  //   const data = await marketContract.fetchMarketItems()
+  //
+  //   const items = await Promise.all(data.map(async i => {
+  //     const tokenUri = await tokenContract.tokenURI(i.tokenId)
+  //     const meta = await axios.get(tokenUri)
+  //     let price = ethers.utils.formatUnits(i.price.toString(), 'ether')
+  //     let item = {
+  //       price,
+  //       tokenId: i.tokenId.toNumber(),
+  //       seller: i.seller,
+  //       owner: i.owner,
+  //       image: meta.data.image,
+  //       name: meta.data.name,
+  //       auction: i.auction,
+  //       endTime: i.endTime,
+  //       description: meta.data.description,
+  //     }
+  //     return item
+  //   }))
+  //   setNfts(items)
+  //   setLoadingState('loaded')
+  // }
+  // async function buyFirebase(nft) {
+  //   if (!window.ethereum) {
+  //     setShowModalMessage("Unable to purchase without a crypto wallet. Please refresh screen to try again.")
+  //   } else {
+  //     setShowModal(true)
+  //     const firebaseConfig = {
+  //       // INSERT YOUR OWN CONFIG HERE
+  //       apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
+  //       authDomain: "pay-a-vegan.firebaseapp.com",
+  //       databaseURL: "https://pay-a-vegan.firebaseio.com",
+  //       projectId: "pay-a-vegan",
+  //       storageBucket: "pay-a-vegan.appspot.com",
+  //       messagingSenderId: "587888386485",
+  //       appId: "1:587888386485:web:3a81137924d19cbe2439fc",
+  //       measurementId: "G-MGJK6GF9YW"
+  //     };
+  //
+  //     const app = initializeApp(firebaseConfig)
+  //
+  //     const db = getFirestore(app)
+  //     const characterRef = doc(db, "characters", nft.id);
+  //     // Set the "capital" field of the city 'DC'
+  //     await updateDoc(characterRef, {
+  //       sold: true,
+  //       owner: address,
+  //       price: nft.price
+  //     });
+  //     setShowModal(false)
+  //     //loadFirebase()
+  //
+  //     router.push('/my-purchase')
+  //   }
+  // }
+  // async function buyNft(nft) {
+  //   setShowModal(true)
+  //   const web3Modal = new Web3Modal()
+  //   const connection = await web3Modal.connect()
+  //   const provider = new ethers.providers.Web3Provider(connection)
+  //   const signer = provider.getSigner()
+  //   const contract = new ethers.Contract(nftmarketaddress, Market.abi, signer)
+  //
+  //   const price = ethers.utils.parseUnits(nft.price.toString(), 'ether')
+  //   const transaction = await contract.createMarketSale(Market, nft.tokenId, {
+  //     value: price
+  //   })
+  //   await transaction.wait()
+  //   setShowModal(false)
+  //   loadNFTs()
+  // }
   if (showModal) return (
     <div className="p-4">
       <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>
@@ -650,7 +647,7 @@ export default function Home() {
       <main>
         <div className="row">
           <div className="col-md">
-            <div className="album py-5 bg-light">
+            <div className="album py-5">
               <div className="container">
                 <div className="w300-px-wide">
                 {
@@ -665,9 +662,10 @@ export default function Home() {
                       <Carousel activeIndex={index} onSelect={handleSelect}>
                          {nfts.map((nft, i) => {
                           return (
-                            <Carousel.Item key={i} style={{height: '600px'}}>
+                            <Carousel.Item key={i} style={{width: '460px', height: '580px'}}>
                               <Image
-                                layout='fill'
+                                height="580px"
+                                width="460px"
                                 src={nft.image}
                                 alt="slider image"
                               />

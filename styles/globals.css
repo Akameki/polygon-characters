@@ -3,8 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 .carousel {
-  background: black;
+  background-color: black
 }
+
 .w300-px-wide {
   width: 100% !important;
 }
