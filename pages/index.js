@@ -181,7 +181,7 @@ export default function Home() {
 
   function nextThemeIndex() {
     const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 26, 0)
+    const difference = Math.max(b.getUTCDate() - 27, 0)
     return difference
   }
 
@@ -506,6 +506,8 @@ export default function Home() {
       basePrice = Number(winningBid.price)
       lastBidder = winningBid.bidder
     }
+    console.log("*****basePrice", basePrice)
+    console.log("*****Number(formInput.price)", Number(formInput.price))
 
     if (basePrice < Number(formInput.price)) {
       let eth_price = ethers.utils.parseUnits(formInput.price, 'ether')
