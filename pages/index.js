@@ -181,7 +181,7 @@ export default function Home() {
 
   function nextThemeIndex() {
     const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 27, 0)
+    const difference = Math.max(b.getUTCDate() - 26, 0)
     return difference
   }
 
@@ -219,16 +219,17 @@ export default function Home() {
         seller: data.seller,
         sold: data.sold,
         description: data.description,
-        theme: data.theme
+        theme: data.theme.toUpperCase()
       }
 
       items.push(item)
     })
     let groupByItems = groupBy(items, "theme")
     let theme = themes[themeIndexes.themeIndex]
-    let saleItems = groupByItems[theme]
+    let saleItems = groupByItems[theme.toUpperCase()]
     let submitted = []
     let lowestBid = 0.1
+
     if (saleItems) {
       let maxSoldPrice = saleItems.reduce((prev, current) => {
         if (current.sold) {
@@ -254,30 +255,29 @@ export default function Home() {
         description: 'admin default',
         theme: theme
       })
-
-      const auctionRef = collection(db, "auctions");
-      const auction_query = query(auctionRef,
-        orderBy("theme"),
-        orderBy("createdAt", "desc"));
-
-      const auctionQuerySnapshot = await getDocs(auction_query);
-
-      const bidData = [];
-      auctionQuerySnapshot.forEach((doc) => {
-        let data = doc.data();
-        let item = {
-          id: doc.id,
-          price: data.price,
-          theme: data.theme,
-          bidder: data.bidder,
-          createdAt: new Date(data.createdAt).toString()
-        }
-        item.bidder_string = item.bidder ? [data.bidder.substr(0, 4), data.bidder.substr(38, 4)].join('...') : ''
-        bidData.push(item)
-      })
-      submitted = bidData.filter(i => i.theme == theme)
-      lowestBid = ((submitted[0]?.price || 0) + 0.2).toFixed(2)
     }
+
+    const auctionRef = collection(db, "auctions")
+    const auction_query = query(auctionRef,
+      orderBy("theme"),
+      orderBy("createdAt", "desc"))
+    const auctionQuerySnapshot = await getDocs(auction_query)
+    const bidData = [];
+    auctionQuerySnapshot.forEach((doc) => {
+      let data = doc.data();
+      let item = {
+        id: doc.id,
+        price: data.price,
+        theme: data.theme,
+        bidder: data.bidder,
+        createdAt: new Date(data.createdAt).toString()
+      }
+      item.bidder_string = item.bidder ? [data.bidder.substr(0, 4), data.bidder.substr(38, 4)].join('...') : ''
+      bidData.push(item)
+    })
+    submitted = bidData.filter(i => i.theme.toUpperCase() === theme.toUpperCase())
+    lowestBid = ((submitted[0]?.price || 0) + 0.2).toFixed(2)
+
     setNfts(saleItems || [])
     setTheme(theme)
     lookupBidderAddress(submitted)
@@ -498,7 +498,7 @@ export default function Home() {
 
     const submitted = bidData.filter(i => i.theme.toUpperCase() === theme.toUpperCase())
     var basePrice = 0
-    var lastBidder = ''
+    var lastBidder = contract_owner
     if (submitted.length > 0) {
       let winningBid = submitted.reduce((prev, curr) => {
         return prev.price > curr.price ? prev : curr;
