@@ -155,25 +155,36 @@ export default function Home() {
     }
   }
 
-  // useEffect(() => {
-  //   try {
-  //     validateOnLoad()
-  //     window.ethereum.on('accountsChanged', handleAccountsChanged)
-  //     window.ethereum.on('chainChanged', handleChainChanged)
-  //     window.ethereum.on('connect', handleConnect)
-  //     window.ethereum.on('disconnect', handleDisconnect)
-  //       // Force page refreshes on network changes
-  //       // The "any" network will allow spontaneous network changes
-  //     let provider = new ethers.providers.Web3Provider(window.ethereum, "any")
-  //     provider
-  //       .on("network", handleNetworkChanged)
-  //   } catch(error) {
-  //     setShowModalMessage(error.message || error)
-  //   }
-  //   return function cleanup() {
-  //     //mounted = false
-  //   }
-  // }, [])
+  useEffect(() => {
+    try {
+      //validateOnLoad()
+      window.ethereum.request({ method: 'eth_requestAccounts' })
+      .then(handleAccountsChanged)
+      // .catch((err) => {
+      //   if (err.code === 4001) {
+      //     // EIP-1193 userRejectedRequest error
+      //     // If this happens, the user rejected the connection request.
+      //     console.log('Please connect to MetaMask.');
+      //   } else {
+      //     console.error(err);
+      //   }
+      // })
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      // window.ethereum.on('chainChanged', handleChainChanged)
+      // window.ethereum.on('connect', handleConnect)
+      // window.ethereum.on('disconnect', handleDisconnect)
+        // Force page refreshes on network changes
+        // The "any" network will allow spontaneous network changes
+      // let provider = new ethers.providers.Web3Provider(window.ethereum, "any")
+      // provider
+      //   .on("network", handleNetworkChanged)
+    } catch(error) {
+      setShowModalMessage(error.message || error)
+    }
+    return function cleanup() {
+      //mounted = false
+    }
+  }, [])
 
   function endCountdownTime(targetDay) {
     return Math.floor(Date.now() / 1000) + (targetDay * 10)
@@ -376,7 +387,6 @@ export default function Home() {
 
   useEffect(() => {
     //loadNFTs()
-
     loadFirebase()
     return function cleanup() {
       //mounted = false
@@ -506,8 +516,6 @@ export default function Home() {
       basePrice = Number(winningBid.price)
       lastBidder = winningBid.bidder
     }
-    console.log("*****basePrice", basePrice)
-    console.log("*****Number(formInput.price)", Number(formInput.price))
 
     if (basePrice < Number(formInput.price)) {
       let eth_price = ethers.utils.parseUnits(formInput.price, 'ether')
@@ -742,7 +750,7 @@ export default function Home() {
                     <div className="row mb-6">
                       <div className="col-md">
                       {
-                        bids.length ? (
+                        nfts.length && bids.length ? (
                           <div className="col">
                             <h6 className="card-subtitle mb-2 text-muted">Winning Bid</h6>
                             <h2 className="card-subtitle mb-2">{bids[0]?.price} eth</h2>
@@ -759,7 +767,7 @@ export default function Home() {
                         <div className="justify-content-center align-self-center">
                           <h6 className="card-subtitle mb-2 text-muted">Winner</h6>
                           {
-                            bids.length ? (
+                            nfts.length && bids.length ? (
                               <div>
                                 <h2 className="card-subtitle mb-2">{bids[0]?.bidder_string}</h2>
                                 {
@@ -781,7 +789,7 @@ export default function Home() {
                   )
                 }
                 {
-                  themeIndexes.themeIndex === nextThemeIndex() &&
+                  (nfts.length && themeIndexes.themeIndex === nextThemeIndex()) ?
                   (
                     <div>
                       <div className="row mb-6">
@@ -804,7 +812,7 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                  )
+                  ) : (<div></div>)
                 }
                 {
                   themeIndexes.themeIndex > nextThemeIndex() ?
@@ -815,7 +823,7 @@ export default function Home() {
                   ) : (
                     <div className="row mb-6">
                       {
-                        bids.length ?
+                        nfts.length && bids.length ?
                         (
                           bids.map((bid, i) => (
                             <div key={i}>
