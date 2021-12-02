@@ -192,7 +192,7 @@ export default function Home() {
 
   function nextThemeIndex() {
     const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 30, 0)
+    const difference = Math.max(b.getUTCDate() - 1, 0)
     return difference
   }
 
