@@ -75,8 +75,8 @@ export default function Home() {
 
   function nextItemIndex() {
     const d = new Date();
-    let hour = d.getUTCHours();
-    return hour
+    let hour = d.getUTCHours()
+    return Math.floor(hour / 5)
   }
 
   function groupBy(arr, criteria) {
@@ -192,7 +192,7 @@ export default function Home() {
 
   function nextThemeIndex() {
     const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 1, 0)
+    const difference = Math.max(b.getUTCDate() - 2, 0)
     return difference
   }
 
@@ -227,6 +227,7 @@ export default function Home() {
         price: data.price,
         name: data.name,
         image: data.fileUrl,
+        maskUrl: data.maskUrl,
         seller: data.seller,
         sold: data.sold,
         description: data.description,
@@ -250,21 +251,12 @@ export default function Home() {
         }
       }, 0)
 
-      // saleItems.forEach((item, i) => {
-      //   if (i > themeIndexes.themeItemIndex) {
-      //     item.image = '/patch-question.svg'
-      //   }
-      // });
-
-      saleItems.push({
-        id: 100,
-        price: 100,
-        name: 'king0',
-        image: '/monkeyking0.png',
-        seller: 'admin',
-        sold: false,
-        description: 'admin default',
-        theme: theme
+      saleItems.forEach((item, i) => {
+        if (i > themeIndexes.themeItemIndex) {
+          if (item.maskUrl) {
+            item.image = item.maskUrl
+          }
+        }
       })
     }
 
@@ -549,7 +541,7 @@ export default function Home() {
   }
 
   async function nextTheme() {
-    settle(theme)
+    //settle(theme)
     updateThemeCountdown({ ...themeCountdown, themeEndTime: endCountdownTime(endThemeTime()), themeItemEndTime: endCountdownTime(endItemTime())})
     updateThemeIndexes({ ...themeIndexes, themeIndex: themeIndexes.themeIndex + 1, themeItemIndex: 0})
   }

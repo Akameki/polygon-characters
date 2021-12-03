@@ -6,7 +6,6 @@ import Image from 'next/image'
 import {
   nftmarketaddress, nftaddress
 } from '../config'
-import monkeymint_config from '../monkeymint_config.json'
 import { useRouter } from 'next/router'
 
 import Link from 'next/link'
@@ -17,7 +16,7 @@ import { initializeApp, getApps } from "firebase/app"
 import { getStorage, ref, listAll } from "firebase/storage";
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, limit, where} from "firebase/firestore";
 
-export default function ByAuthor() {
+export default function Themes() {
   const [nfts, setNfts] = useState([])
   const [sold, setSold] = useState([])
   const [bought, setBought] = useState([])
@@ -116,31 +115,32 @@ export default function ByAuthor() {
       bidData.push(item)
     })
 
-    const nounsRef = collection(db, "characters");
-    const q = query(nounsRef,
-      orderBy("theme"),
-      orderBy("createdAt", "asc"));
+    const themesRef = collection(db, "character-themes");
+    const q = query(themesRef);
     const querySnapshot = await getDocs(q);
-    const items = [];
+    const themes = [];
     querySnapshot.forEach((doc) => {
-      let character = doc.data();
+      let theme = doc.data();
       let item = {
         id: doc.id,
-        price: character.price,
-        image: character.fileUrl,
-        name: character.name,
-        description: character.description,
-        sold: character.sold,
-        seller: character.seller,
-        owner: character.owner,
-        minted: character.minted,
-        theme: character.theme
+        image: theme.imageUrl,
+        name: theme.name,
+        description: theme.description,
+        tokenURI: theme.tokenURI,
+        startTime: theme.startTime,
+        duration: theme.duration,
+        minted: theme.minted
       }
-      items.push(item)
+
+      var readableDate = item.startTime.toDate()
+      readableDate.setTime(readableDate.getTime() + (item.duration *60*60*1000))
+      if (new Date() > readableDate) {
+        themes.push(item)
+      }
     })
-    const myItems = items.filter(i => i.owner.toUpperCase() === address.toUpperCase())
-    myItems.forEach((item, i) => {
-      const submitted = bidData.filter(bid => bid.theme == item.theme)
+
+    themes.forEach((theme, i) => {
+      const submitted = bidData.filter(bid => bid.theme === theme.name)
       var basePrice = 0
       var lastBidder = ''
       if (submitted.length > 0) {
@@ -150,11 +150,12 @@ export default function ByAuthor() {
         basePrice = Number(winningBid.price)
         lastBidder = winningBid.bidder
       }
-      item.winningBid = basePrice
-      item.winningBidder = lastBidder
-    });
+      theme.winningBid = basePrice
+      theme.winningBidder = lastBidder
+    })
+    const myThemes = themes.filter(i => i.winningBidder.toUpperCase() === address.toUpperCase())
 
-    setNfts(myItems)
+    setNfts(myThemes)
     setLoadingState('loaded')
   }
 
@@ -168,6 +169,9 @@ export default function ByAuthor() {
 
   async function mintFirebase(nft) {
     try {
+      if (nft.minted) {
+        throw `Error - NFT has already been minted.`
+      }
       setShowModal(true)
       const web3Modal = new Web3Modal()
       const connection = await web3Modal.connect()
@@ -176,8 +180,7 @@ export default function ByAuthor() {
 
       /* next, create the item */
       let contract = new ethers.Contract(nftaddress, NFT.abi, signer)
-      let m = monkeymint_config[nft.name]
-      let transaction = await contract.createToken(m.uri)
+      let transaction = await contract.createToken(nft.tokenURI)
       setShowModal(false)
       setShowModalMinting(true)
       let tx = await transaction.wait()
@@ -199,7 +202,7 @@ export default function ByAuthor() {
 
       const app = initializeApp(firebaseConfig)
       const db = getFirestore(app)
-      const characterRef = doc(db, "characters", nft.id);
+      const characterRef = doc(db, "character-themes", nft.id);
       // Set the "capital" field of the city 'DC'
       await updateDoc(characterRef, {
         minted: true
@@ -207,9 +210,9 @@ export default function ByAuthor() {
       setShowModalMinting(false)
       loadFirebase()
     } catch (error) {
-      setErrorMessage(error.message)
       setShowModal(false)
-      setShowModalMinting(true)
+      setShowModalMinting(false)
+      setErrorMessage(error || error.message)
     }
   }
   async function loadNFTs() {
@@ -296,6 +299,13 @@ export default function ByAuthor() {
       </div>
     </div>
   )
+  if (errorMessage) return (
+    <div>
+      <div className="p-4">
+        <p>{errorMessage}</p>
+      </div>
+    </div>
+  )
   return (
     <div>
       <main>
@@ -317,7 +327,8 @@ export default function ByAuthor() {
                         {nft.theme}
                       </div>
                       <div>
-                        <Image src={nft.image} alt="NFT series" width="100%" height="100%"  />
+                        <video key={i} autoPlay muted loop alt="NFT series" width="100%" height="100%"
+                           src={nft.image} poster={nft.image} />
                       </div>
                       <div className="card-body">
                       <h5 className="card-title">{nft.name}</h5>
