@@ -1,7 +1,7 @@
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import Web3Modal from "web3modal"
+//import Web3Modal from "web3modal"
 import Image from 'next/image'
 
 import Carousel from 'react-bootstrap/Carousel';
@@ -19,7 +19,7 @@ import Market from '../artifacts/contracts/Market.sol/NFTMarket.json'
 
 import { initializeApp, getApps } from "firebase/app"
 import { getStorage, ref, listAll } from "firebase/storage";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, limit, where } from "firebase/firestore";
+import { onSnapshot, getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, limit, where } from "firebase/firestore";
 
 export default function Home() {
   const [nfts, setNfts] = useState([])
@@ -32,6 +32,7 @@ export default function Home() {
   const router = useRouter()
   const [themeIndexes, updateThemeIndexes] = useState({ themeIndex: nextThemeIndex(), themeItemIndex: nextItemIndex(), title: `Week ${nextThemeIndex() + 1}` })
   const themes = [
+    "Monkey King Classic",
     "Monkey King Adventure",
     "Monkey King Back To School",
     "Monkey King Office Survival",
@@ -48,15 +49,24 @@ export default function Home() {
     "Monkey King Babyland",
     "Monkey King Wild Wild West"]
   const [themeCountdown, updateThemeCountdown] = useState({ themeEndTime: endCountdownTime(endThemeTime()), themeItemEndTime: endCountdownTime(endItemTime()) })
-
-  const [formInput, updateFormInput] = useState({ price: '', name: '', description: '' })
+  const [formInput, updateFormInput] = useState({ price: ''})
   const [bids, setBids] = useState([])
   const [minimumBid, setMinimumBid] = useState(0.1)
   const [theme, setTheme] = useState()
   const [index, setIndex] = useState(0);
   const handleSelect = (selectedIndex, e) => {
     setIndex(selectedIndex);
-  };
+  }
+
+  function endCountdownTime(targetDay) {
+    return Math.floor(Date.now() / 1000) + (targetDay * 10)
+  }
+
+  function nextThemeIndex() {
+    const b = new Date()
+    const difference = Math.max(b.getUTCDate() - 5, 0)
+    return difference
+  }
 
   function endThemeTime() {
     const d = new Date()
@@ -157,27 +167,29 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      //validateOnLoad()
-      window.ethereum.request({ method: 'eth_requestAccounts' })
-      .then(handleAccountsChanged)
-      // .catch((err) => {
-      //   if (err.code === 4001) {
-      //     // EIP-1193 userRejectedRequest error
-      //     // If this happens, the user rejected the connection request.
-      //     console.log('Please connect to MetaMask.');
-      //   } else {
-      //     console.error(err);
-      //   }
-      // })
-      window.ethereum.on('accountsChanged', handleAccountsChanged)
-      // window.ethereum.on('chainChanged', handleChainChanged)
-      // window.ethereum.on('connect', handleConnect)
-      // window.ethereum.on('disconnect', handleDisconnect)
-        // Force page refreshes on network changes
-        // The "any" network will allow spontaneous network changes
-      // let provider = new ethers.providers.Web3Provider(window.ethereum, "any")
-      // provider
-      //   .on("network", handleNetworkChanged)
+      if (window.ethereum) {
+        //validateOnLoad()
+        window.ethereum.request({ method: 'eth_requestAccounts' })
+        .then(handleAccountsChanged)
+        // .catch((err) => {
+        //   if (err.code === 4001) {
+        //     // EIP-1193 userRejectedRequest error
+        //     // If this happens, the user rejected the connection request.
+        //     console.log('Please connect to MetaMask.');
+        //   } else {
+        //     console.error(err);
+        //   }
+        // })
+        window.ethereum.on('accountsChanged', handleAccountsChanged)
+        // window.ethereum.on('chainChanged', handleChainChanged)
+        // window.ethereum.on('connect', handleConnect)
+        // window.ethereum.on('disconnect', handleDisconnect)
+          // Force page refreshes on network changes
+          // The "any" network will allow spontaneous network changes
+        // let provider = new ethers.providers.Web3Provider(window.ethereum, "any")
+        // provider
+        //   .on("network", handleNetworkChanged)
+      }
     } catch(error) {
       setShowModalMessage(error.message || error)
     }
@@ -185,16 +197,6 @@ export default function Home() {
       //mounted = false
     }
   }, [])
-
-  function endCountdownTime(targetDay) {
-    return Math.floor(Date.now() / 1000) + (targetDay * 10)
-  }
-
-  function nextThemeIndex() {
-    const b = new Date()
-    const difference = Math.max(b.getUTCDate() - 2, 0)
-    return difference
-  }
 
   async function loadFirebase() {
     const firebaseConfig = {
@@ -213,15 +215,12 @@ export default function Home() {
     const db = getFirestore(app)
     //const auth = getAuth(app)
 
-    const nounsRef = collection(db, "characters");
-    const q = query(nounsRef,
-      orderBy("theme"),
-      orderBy("createdAt", "asc"));
-
-    const querySnapshot = await getDocs(q);
-    const items = [];
+    const nounsRef = collection(db, "characters")
+    const q = query(nounsRef, orderBy("theme"), orderBy("order"))
+    const querySnapshot = await getDocs(q)
+    const items = []
     querySnapshot.forEach((doc) => {
-      let data = doc.data();
+      let data = doc.data()
       let item = {
         id: doc.id,
         price: data.price,
@@ -233,7 +232,6 @@ export default function Home() {
         description: data.description,
         theme: data.theme.toUpperCase()
       }
-
       items.push(item)
     })
     let groupByItems = groupBy(items, "theme")
@@ -252,46 +250,49 @@ export default function Home() {
       }, 0)
 
       saleItems.forEach((item, i) => {
-        if (i > themeIndexes.themeItemIndex) {
-          if (item.maskUrl) {
-            item.image = item.maskUrl
+        if (item.theme === theme.toUpperCase()) {
+          if (i > themeIndexes.themeItemIndex) {
+            if (item.maskUrl) {
+              item.image = item.maskUrl
+            }
           }
         }
       })
     }
 
-    const auctionRef = collection(db, "auctions")
-    const auction_query = query(auctionRef,
-      orderBy("theme"),
-      orderBy("createdAt", "desc"))
-    const auctionQuerySnapshot = await getDocs(auction_query)
-    const bidData = [];
-    auctionQuerySnapshot.forEach((doc) => {
-      let data = doc.data();
-      let item = {
-        id: doc.id,
-        price: data.price,
-        theme: data.theme,
-        bidder: data.bidder,
-        createdAt: new Date(data.createdAt).toString()
-      }
-      item.bidder_string = item.bidder ? [data.bidder.substr(0, 4), data.bidder.substr(38, 4)].join('...') : ''
-      bidData.push(item)
+    const themesRef = collection(db, "character-themes")
+    const themesQuery = query(themesRef, where("name", "==", theme))
+    const themesQuerySnapshot = await getDocs(themesQuery)
+    const bidData = []
+    themesQuerySnapshot.forEach((doc) => {
+      let data = doc.data()
+      let bids = (data.bids || []).sort((a, b) => {
+        return b.createdAt - a.createdAt
+      })
+      bids.forEach((bid, i) => {
+        let item = {
+          id: doc.id,
+          price: bid.price,
+          theme: data.theme,
+          bidder: bid.bidder,
+          createdAt: new Date(bid.createdAt).toString()
+        }
+        item.bidder_string = item.bidder ? [item.bidder.substr(0, 4), item.bidder.substr(38, 4)].join('...') : ''
+        bidData.push(item)
+      })
     })
-    submitted = bidData.filter(i => i.theme.toUpperCase() === theme.toUpperCase())
-    lowestBid = ((submitted[0]?.price || 0) + 0.2).toFixed(2)
+
+    lowestBid = ((bidData[0]?.price || 0) + 0.2).toFixed(2)
 
     setNfts(saleItems || [])
     setTheme(theme)
-    lookupBidderAddress(submitted)
-    setBids(submitted)
+    lookupBidderAddress(bidData)
+    setBids(bidData)
     setMinimumBid(lowestBid)
     setLoadingState('loaded')
   }
 
   async function lookupBidderAddress(arg) {
-    const web3Modal = new Web3Modal()
-    const connection = await web3Modal.connect()
     const provider = new ethers.getDefaultProvider()
     for (var i=0; i<arg.length; i++) {
       let item = arg[i]
@@ -302,86 +303,36 @@ export default function Home() {
     }
   }
 
-    async function settle() {
-      const firebaseConfig = {
-        // INSERT YOUR OWN CONFIG HERE
-        apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-        authDomain: "pay-a-vegan.firebaseapp.com",
-        databaseURL: "https://pay-a-vegan.firebaseio.com",
-        projectId: "pay-a-vegan",
-        storageBucket: "pay-a-vegan.appspot.com",
-        messagingSenderId: "587888386485",
-        appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-        measurementId: "G-MGJK6GF9YW"
-      };
-
-      const app = initializeApp(firebaseConfig)
-      const db = getFirestore(app)
-      //const auth = getAuth(app)
-
-      const auctionRef = collection(db, "auctions");
-      const auction_query = query(auctionRef,
-        orderBy("theme"),
-        orderBy("createdAt", "desc"));
-      const auctionQuerySnapshot = await getDocs(auction_query);
-
-      const bidData = [];
-      auctionQuerySnapshot.forEach((doc) => {
-        let data = doc.data();
-        let item = {
-          id: doc.id,
-          price: data.price,
-          theme: data.theme,
-          bidder: data.bidder,
-          createdAt: new Date(data.createdAt).toString()
-        }
-        bidData.push(item)
-      })
-
-      const submitted = bidData.filter(i => i.theme.toUpperCase() === theme.toUpperCase())
-      if (submitted.length > 0) {
-        let winningBid = submitted.reduce((prev, curr) => {
-          return prev.price > curr.price ? prev : curr;
-        })
-
-        const nounsRef = collection(db, "characters");
-        const q = query(nounsRef,
-          orderBy("theme"),
-          orderBy("createdAt", "asc"));
-
-        const querySnapshot = await getDocs(q);
-        const items = [];
-        querySnapshot.forEach((queryDoc) => {
-          let data = queryDoc.data();
-          let item = {
-            id: queryDoc.id,
-            price: data.price,
-            name: data.name,
-            image: data.fileUrl,
-            seller: data.seller,
-            sold: data.sold,
-            description: data.description,
-            theme: data.theme
-          }
-
-          if (item.theme.toUpperCase() === theme.toUpperCase()) {
-            const characterRef = doc(db, "characters", item.id);
-            // Set the "capital" field of the city 'DC'
-            updateDoc(characterRef, {
-              owner: winningBid.bidder
-            });
-          }
-        })
-        setShowModalMinting(false)
-      }
-      setLoadingState('loaded')
-    }
-
   useEffect(() => {
-    //loadNFTs()
+    const firebaseConfig = {
+      // INSERT YOUR OWN CONFIG HERE
+      apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
+      authDomain: "pay-a-vegan.firebaseapp.com",
+      databaseURL: "https://pay-a-vegan.firebaseio.com",
+      projectId: "pay-a-vegan",
+      storageBucket: "pay-a-vegan.appspot.com",
+      messagingSenderId: "587888386485",
+      appId: "1:587888386485:web:3a81137924d19cbe2439fc",
+      measurementId: "G-MGJK6GF9YW"
+    }
+    let firebase = initializeApp(firebaseConfig)
+    const app = initializeApp(firebaseConfig)
+    const db = getFirestore(app)
+
+    const themesRef = collection(db, "character-themes")
+    const q = query(themesRef, where("name", "==", themes[themeIndexes.themeIndex])) //theme
+    const unsub = onSnapshot(q, (querySnapshot) => {
+      // const bids = []
+      // querySnapshot.forEach((doc) => {
+      //     bids.push(doc.data().bid)
+      // })
+      loadFirebase()
+    })
+
     loadFirebase()
     return function cleanup() {
       //mounted = false
+      unsub()
     }
   }, [themeIndexes])
 
@@ -475,27 +426,30 @@ export default function Home() {
       messagingSenderId: "587888386485",
       appId: "1:587888386485:web:3a81137924d19cbe2439fc",
       measurementId: "G-MGJK6GF9YW"
-    };
+    }
 
     const app = initializeApp(firebaseConfig)
     const db = getFirestore(app)
-    const auctionRef = collection(db, "auctions");
-    const auction_query = query(auctionRef,
-      orderBy("theme"),
-      orderBy("createdAt", "desc"));
-    const auctionQuerySnapshot = await getDocs(auction_query);
-
-    const bidData = [];
-    auctionQuerySnapshot.forEach((doc) => {
-      let data = doc.data();
-      let item = {
-        id: doc.id,
-        price: data.price,
-        theme: data.theme,
-        bidder: data.bidder,
-        createdAt: new Date(data.createdAt).toString()
-      }
-      bidData.push(item)
+    const themesRef = collection(db, "character-themes")
+    const q = query(themesRef, where("name", "==", theme))
+    const querySnapshot = await getDocs(q)
+    const bidData = []
+    querySnapshot.forEach((doc) => {
+      let data = doc.data()
+      let bids = (data.bids || []).sort((a, b) => {
+        return a.createdAt < b.createdAt
+      })
+      bids.forEach((bid, i) => {
+        let item = {
+          id: doc.id,
+          price: bid.price,
+          theme: data.name,
+          bidder: bid.bidder,
+          createdAt: new Date(bid.createdAt).toString()
+        }
+        item.bidder_string = item.bidder ? [item.bidder.substr(0, 4), item.bidder.substr(38, 4)].join('...') : ''
+        bidData.push(item)
+      })
     })
 
     const submitted = bidData.filter(i => i.theme.toUpperCase() === theme.toUpperCase())
@@ -513,9 +467,11 @@ export default function Home() {
       let eth_price = ethers.utils.parseUnits(formInput.price, 'ether')
       let eth_basePrice = ethers.utils.parseUnits(basePrice.toString(), 'ether')
 
-      const web3Modal = new Web3Modal()
-      const connection = await web3Modal.connect()
-      const provider = new ethers.providers.Web3Provider(connection)
+      //const web3Modal = new Web3Modal()
+      //const connection = await web3Modal.connect()
+      //const provider = new ethers.providers.Web3Provider(connection)
+      //const provider = new ethers.getDefaultProvider()
+      const provider = new ethers.providers.Web3Provider(window.ethereum)
       const signer = provider.getSigner()
 
       setShowModal(true)
@@ -526,13 +482,19 @@ export default function Home() {
       })
       await transaction.wait()
 
-      const colRef = collection(db, 'auctions')
-      addDoc(colRef, {
-        price: Number(formInput.price),
-        bidder: bidAddress,
-        theme: theme,
-        createdAt: Date.now()
-      });
+      const themesRef = collection(db, "character-themes")
+      const q = query(themesRef, where("name", "==", theme))
+      const querySnapshot = await getDocs(q)
+      querySnapshot.forEach((doc) => {
+        let data = doc.data()
+        updateDoc(doc.ref, {
+            bids: [...(data.bids || []), {
+              price: Number(formInput.price),
+              bidder: bidAddress,
+              createdAt: Date.now()
+            }]
+        })
+      })
 
       updateThemeIndexes({ ...themeIndexes })
     } else {
@@ -541,90 +503,10 @@ export default function Home() {
   }
 
   async function nextTheme() {
-    //settle(theme)
     updateThemeCountdown({ ...themeCountdown, themeEndTime: endCountdownTime(endThemeTime()), themeItemEndTime: endCountdownTime(endItemTime())})
-    updateThemeIndexes({ ...themeIndexes, themeIndex: themeIndexes.themeIndex + 1, themeItemIndex: 0})
+    updateThemeIndexes({ ...themeIndexes, themeIndex: themeIndexes.themeIndex + 1, themeItemIndex: 0, title: `Week ${themeIndexes.themeIndex + 2}`})
   }
-  // async function loadNFTs() {
-  //     const web3Modal = new Web3Modal({
-  //       network: "mainnet",
-  //       cacheProvider: true,
-  //     })
-  //   const connection = await web3Modal.connect()
-  //   const provider = new ethers.providers.Web3Provider(connection)
-  //   const tokenContract = new ethers.Contract(nftaddress, NFT.abi, provider)
-  //   const marketContract = new ethers.Contract(nftmarketaddress, Market.abi, provider)
-  //   const data = await marketContract.fetchMarketItems()
-  //
-  //   const items = await Promise.all(data.map(async i => {
-  //     const tokenUri = await tokenContract.tokenURI(i.tokenId)
-  //     const meta = await axios.get(tokenUri)
-  //     let price = ethers.utils.formatUnits(i.price.toString(), 'ether')
-  //     let item = {
-  //       price,
-  //       tokenId: i.tokenId.toNumber(),
-  //       seller: i.seller,
-  //       owner: i.owner,
-  //       image: meta.data.image,
-  //       name: meta.data.name,
-  //       auction: i.auction,
-  //       endTime: i.endTime,
-  //       description: meta.data.description,
-  //     }
-  //     return item
-  //   }))
-  //   setNfts(items)
-  //   setLoadingState('loaded')
-  // }
-  // async function buyFirebase(nft) {
-  //   if (!window.ethereum) {
-  //     setShowModalMessage("Unable to purchase without a crypto wallet. Please refresh screen to try again.")
-  //   } else {
-  //     setShowModal(true)
-  //     const firebaseConfig = {
-  //       // INSERT YOUR OWN CONFIG HERE
-  //       apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
-  //       authDomain: "pay-a-vegan.firebaseapp.com",
-  //       databaseURL: "https://pay-a-vegan.firebaseio.com",
-  //       projectId: "pay-a-vegan",
-  //       storageBucket: "pay-a-vegan.appspot.com",
-  //       messagingSenderId: "587888386485",
-  //       appId: "1:587888386485:web:3a81137924d19cbe2439fc",
-  //       measurementId: "G-MGJK6GF9YW"
-  //     };
-  //
-  //     const app = initializeApp(firebaseConfig)
-  //
-  //     const db = getFirestore(app)
-  //     const characterRef = doc(db, "characters", nft.id);
-  //     // Set the "capital" field of the city 'DC'
-  //     await updateDoc(characterRef, {
-  //       sold: true,
-  //       owner: address,
-  //       price: nft.price
-  //     });
-  //     setShowModal(false)
-  //     //loadFirebase()
-  //
-  //     router.push('/my-purchase')
-  //   }
-  // }
-  // async function buyNft(nft) {
-  //   setShowModal(true)
-  //   const web3Modal = new Web3Modal()
-  //   const connection = await web3Modal.connect()
-  //   const provider = new ethers.providers.Web3Provider(connection)
-  //   const signer = provider.getSigner()
-  //   const contract = new ethers.Contract(nftmarketaddress, Market.abi, signer)
-  //
-  //   const price = ethers.utils.parseUnits(nft.price.toString(), 'ether')
-  //   const transaction = await contract.createMarketSale(Market, nft.tokenId, {
-  //     value: price
-  //   })
-  //   await transaction.wait()
-  //   setShowModal(false)
-  //   loadNFTs()
-  // }
+
   if (showModal) return (
     <div className="p-4">
       <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>

@@ -1,7 +1,7 @@
 import { ethers } from 'ethers'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import Web3Modal from "web3modal"
+//import Web3Modal from "web3modal"
 import Image from 'next/image'
 import {
   nftmarketaddress, nftaddress
@@ -17,10 +17,9 @@ import { getStorage, ref, listAll } from "firebase/storage";
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, limit, where} from "firebase/firestore";
 
 export default function Themes() {
-  const [nfts, setNfts] = useState([])
+  const [nfts, updateNfts] = useState([])
   const [sold, setSold] = useState([])
   const [bought, setBought] = useState([])
-  const [timers, updateTimers] = useState([])
   const [showModal, setShowModal] = useState(false);
   const [showModalMinting, setShowModalMinting] = useState(false);
   const [loadingState, setLoadingState] = useState('not-loaded')
@@ -29,26 +28,13 @@ export default function Themes() {
   const router = useRouter()
   const { home } = router.query
 
-  async function getMETT(currentAccount) {
-    const web3Modal = new Web3Modal()
-    const connection = await web3Modal.connect()
-    const provider = new ethers.providers.Web3Provider(connection)
-    const signer = provider.getSigner()
-
-    /* next, create the item */
-    let contract = new ethers.Contract(nftaddress, NFT.abi, signer)
-
-    const tokenBalance = await contract.balanceOf(currentAccount);
-    console.log({ tokenBalance: tokenBalance.toString() });
-  }
-
   // For now, 'eth_accounts' will continue to always return an array
   function handleAccountsChanged(accounts) {
     if (accounts.length === 0) {
       // MetaMask is locked or the user has not connected any accounts
       console.log('Please connect to MetaMask.');
     } else if (accounts[0] !== address) {
-      setAddress(accounts[0]);
+      setAddress(accounts[0])
     }
   }
 
@@ -81,6 +67,9 @@ export default function Themes() {
   }, [])
 
   async function loadFirebase() {
+    if (!address) {
+      return
+    }
     const firebaseConfig = {
       // INSERT YOUR OWN CONFIG HERE
       apiKey: "AIzaSyBg34hCq_jGHdj-HNWi2ZjfqhM2YgWq4ek",
@@ -91,71 +80,71 @@ export default function Themes() {
       messagingSenderId: "587888386485",
       appId: "1:587888386485:web:3a81137924d19cbe2439fc",
       measurementId: "G-MGJK6GF9YW"
-    };
+    }
 
     const app = initializeApp(firebaseConfig)
     const db = getFirestore(app)
     //const auth = getAuth(app)
 
-    const auctionRef = collection(db, "auctions");
-    const auction_query = query(auctionRef,
-      orderBy("theme"),
-      orderBy("createdAt", "desc"));
-    const auctionQuerySnapshot = await getDocs(auction_query);
-    const bidData = [];
-    auctionQuerySnapshot.forEach((doc) => {
-      let data = doc.data();
-      let item = {
-        id: doc.id,
-        price: data.price,
-        theme: data.theme,
-        bidder: data.bidder,
-        createdAt: new Date(data.createdAt).toString()
-      }
-      bidData.push(item)
-    })
-
-    const themesRef = collection(db, "character-themes");
-    const q = query(themesRef);
-    const querySnapshot = await getDocs(q);
-    const themes = [];
+    const themesRef = collection(db, "character-themes")
+    const q = query(themesRef)
+    const querySnapshot = await getDocs(q)
+    //const workingNfts = []
+    updateNfts( arr => [])
     querySnapshot.forEach((doc) => {
-      let theme = doc.data();
+      let characterTheme = doc.data()
       let item = {
         id: doc.id,
-        image: theme.imageUrl,
-        name: theme.name,
-        description: theme.description,
-        tokenURI: theme.tokenURI,
-        startTime: theme.startTime,
-        duration: theme.duration,
-        minted: theme.minted
+        //image: characterTheme.imageUrl,
+        name: characterTheme.name,
+        //description: characterTheme.description,
+        //tokenURI: theme.tokenURI,
+        startTime: characterTheme.startTime,
+        duration: characterTheme.duration,
+        bids: characterTheme.bids || []
+        //minted: theme.minted
+      }
+      item.winningBid = 0
+      item.winningBidder = ''
+      if (item.bids.length) {
+        let winningBidData = item.bids.reduce((a, b) => {
+          return a.price > b.price ? a : b
+        })
+        if (winningBidData) {
+          item.winningBid = Number(winningBidData.price)
+          item.winningBidder = winningBidData.bidder
+        }
       }
 
       var readableDate = item.startTime.toDate()
       readableDate.setTime(readableDate.getTime() + (item.duration *60*60*1000))
       if (new Date() > readableDate) {
-        themes.push(item)
+        if (item.winningBidder.toUpperCase() === address.toUpperCase()) {
+          const nftsRef = collection(db, "character-nfts")
+          const nftsQuery = query(nftsRef, where("theme", "==", item.name))
+          //const nftQuerySnapshot = await getDocs(nftsQuery)
+          getDocs(nftsQuery).then(nftQuerySnapshot => {
+            nftQuerySnapshot.forEach((doc) => {
+              let characterNft = doc.data()
+              let nftItem = {
+                id: doc.id,
+                theme: item.name,
+                image: characterNft.imageUrl,
+                // name: theme.name,
+                description: characterNft.description,
+                tokenURI: characterNft.tokenURI,
+                //startTime: theme.startTime,
+                //duration: theme.duration,
+                minted: characterNft.minted,
+                winningBid: item.winningBid,
+                winningBidder: item.winningBidder
+              }
+              updateNfts( arr => [...arr, nftItem])
+            })
+          })
+        }
       }
     })
-
-    themes.forEach((theme, i) => {
-      const submitted = bidData.filter(bid => bid.theme === theme.name)
-      var basePrice = 0
-      var lastBidder = ''
-      if (submitted.length > 0) {
-        let winningBid = submitted.reduce((prev, curr) => {
-          return prev.price > curr.price ? prev : curr;
-        })
-        basePrice = Number(winningBid.price)
-        lastBidder = winningBid.bidder
-      }
-      theme.winningBid = basePrice
-      theme.winningBidder = lastBidder
-    })
-    const myThemes = themes.filter(i => i.winningBidder.toUpperCase() === address.toUpperCase())
-
-    setNfts(myThemes)
     setLoadingState('loaded')
   }
 
@@ -173,9 +162,7 @@ export default function Themes() {
         throw `Error - NFT has already been minted.`
       }
       setShowModal(true)
-      const web3Modal = new Web3Modal()
-      const connection = await web3Modal.connect()
-      const provider = new ethers.providers.Web3Provider(connection)
+      const provider = new ethers.providers.Web3Provider(window.ethereum)
       const signer = provider.getSigner()
 
       /* next, create the item */
@@ -202,11 +189,10 @@ export default function Themes() {
 
       const app = initializeApp(firebaseConfig)
       const db = getFirestore(app)
-      const characterRef = doc(db, "character-themes", nft.id);
-      // Set the "capital" field of the city 'DC'
-      await updateDoc(characterRef, {
+      const nftRef = doc(db, "character-nfts", nft.id)
+      await updateDoc(nftRef, {
         minted: true
-      });
+      })
       setShowModalMinting(false)
       loadFirebase()
     } catch (error) {
@@ -215,66 +201,14 @@ export default function Themes() {
       setErrorMessage(error || error.message)
     }
   }
-  async function loadNFTs() {
-    const web3Modal = new Web3Modal({
-      network: "mainnet",
-      cacheProvider: true,
-    })
-    const connection = await web3Modal.connect()
-    const provider = new ethers.providers.Web3Provider(connection)
-    const signer = provider.getSigner()
-
-    const marketContract = new ethers.Contract(nftmarketaddress, Market.abi, signer)
-    const tokenContract = new ethers.Contract(nftaddress, NFT.abi, provider)
-    const data = await marketContract.fetchItemsCreated()
-
-    const items = await Promise.all(data.map(async i => {
-      const tokenUri = await tokenContract.tokenURI(i.tokenId)
-      const meta = await axios.get(tokenUri)
-      let price = ethers.utils.formatUnits(i.price.toString(), 'ether')
-      let item = {
-        price,
-        tokenId: i.tokenId.toNumber(),
-        seller: i.seller,
-        owner: i.owner,
-        sold: i.sold,
-        auction: i.auction,
-        endTime: i.endTime,
-        image: meta.data.image,
-      }
-      return item
-    }))
-
-    const boughtData = await marketContract.fetchMyNFTs()
-
-    const bougntItems = await Promise.all(boughtData.map(async i => {
-      const tokenUri = await tokenContract.tokenURI(i.tokenId)
-      const meta = await axios.get(tokenUri)
-      let price = ethers.utils.formatUnits(i.price.toString(), 'ether')
-      let item = {
-        price,
-        tokenId: i.tokenId.toNumber(),
-        seller: i.seller,
-        owner: i.owner,
-        sold: i.sold,
-        image: meta.data.image,
-      }
-      return item
-    }))
-    /* create a filtered array of items that have been sold */
-    const soldItems = items.filter(i => i.sold)
-    setSold(soldItems)
-    setNfts(items)
-    setBought(bougntItems)
-    setLoadingState('loaded')
-  }
-  if (loadingState === 'loaded' && !nfts.length && !bought.length) return (
+  if (loadingState === 'loaded' && !nfts.length) return (
     <div>
       <main>
         <section className="py-5 text-center container">
           <div className="row py-lg-5">
             <div className="col-lg-6 col-md-8 mx-auto">
               <h1 className="fw-light">Mint Your Own Themes</h1>
+              <p>You have nothing to mint</p>
             </div>
           </div>
         </section>
@@ -335,7 +269,14 @@ export default function Themes() {
                       <p className="card-text">{nft.description}</p>
                       <p className="card-text"><small className="text-muted">{nft.winningBidder}</small></p>
                       <div className="d-flex justify-content-between align-items-center">
-                        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => mintFirebase(nft)}>Mint</button>
+                        {
+                          (nft.minted) ?
+                          (
+                            <button type="button" className="btn btn-sm btn-outline-secondary disabled">Minted Once</button>
+                          ) : (
+                            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => mintFirebase(nft)}>Mint</button>
+                          )
+                        }
                         <small className="text-muted">{nft.winningBid} MATIC</small>
                       </div>
                       </div>
