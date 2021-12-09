@@ -3,6 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.page-header {
+    background-size: cover;
+    background-image: url(/monkey1.jpeg);
+}
 .w300-px-wide {
   width: 100% !important;
 }
