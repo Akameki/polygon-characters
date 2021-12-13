@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 //import Web3Modal from "web3modal"
 import Image from 'next/image'
-import {
-  nftmarketaddress, nftaddress
-} from '../config'
 import { useRouter } from 'next/router'
+import {
+  nftaddress, nftmarketaddress, envChainName, envChainId, contract_owner
+} from '../config'
 
 import Link from 'next/link'
 import Market from '../artifacts/contracts/Market.sol/NFTMarket.json'
@@ -20,11 +20,12 @@ export default function Themes() {
   const [nfts, updateNfts] = useState([])
   const [sold, setSold] = useState([])
   const [bought, setBought] = useState([])
-  const [showModal, setShowModal] = useState(false);
-  const [showModalMinting, setShowModalMinting] = useState(false);
+  const [showModal, setShowModal] = useState(false)
+  const [showModalMinting, setShowModalMinting] = useState(false)
   const [loadingState, setLoadingState] = useState('not-loaded')
   const [address, setAddress] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
+  const [modalMessage, setModalMessage] = useState(false)
+  const [mintingState, setMintingState] = useState(false)
   const router = useRouter()
   const { home } = router.query
 
@@ -52,12 +53,12 @@ export default function Themes() {
           if (err.code === 4001) {
             // EIP-1193 userRejectedRequest error
             // If this happens, the user rejected the connection request.
-            console.log('Please connect to MetaMask.');
+            console.log('Please connect to MetaMask.')
           } else {
-            console.error(err);
+            console.error(err)
           }
-        });
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
+        })
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
     } else {
       setAddress("Non-Ethereum browser detected. You should consider installing MetaMask.")
     }
@@ -118,54 +119,144 @@ export default function Themes() {
 
       var readableDate = item.startTime.toDate()
       readableDate.setTime(readableDate.getTime() + (item.duration *60*60*1000))
-      if (new Date() > readableDate) {
-        if (item.winningBidder.toUpperCase() === address.toUpperCase()) {
-          const nftsRef = collection(db, "character-nfts")
-          const nftsQuery = query(nftsRef, where("theme", "==", item.name))
-          //const nftQuerySnapshot = await getDocs(nftsQuery)
-          getDocs(nftsQuery).then(nftQuerySnapshot => {
-            nftQuerySnapshot.forEach((doc) => {
-              let characterNft = doc.data()
-              let nftItem = {
-                id: doc.id,
-                theme: item.name,
-                image: characterNft.imageUrl,
-                // name: theme.name,
-                description: characterNft.description,
-                tokenURI: characterNft.tokenURI,
-                //startTime: theme.startTime,
-                //duration: theme.duration,
-                minted: characterNft.minted,
-                winningBid: item.winningBid,
-                winningBidder: item.winningBidder
-              }
-              updateNfts( arr => [...arr, nftItem])
-            })
+      var daysToMint = ''
+      var mintStatus = ''
+      var diffDays = new Date() - readableDate
+      diffDays = Math.ceil(diffDays / (1000 * 60 * 60 * 24))
+      if (diffDays > 0) {
+        daysToMint = `${diffDays} days`
+        mintStatus = 'Mint'
+      } else {
+        daysToMint = `${diffDays} days`
+        mintStatus = 'Expired'
+      }
+      if (item.winningBidder.toUpperCase() === address.toUpperCase()) {
+        const nftsRef = collection(db, "character-nfts")
+        const nftsQuery = query(nftsRef, where("theme", "==", item.name))
+        getDocs(nftsQuery).then(nftQuerySnapshot => {
+          nftQuerySnapshot.forEach((doc) => {
+            let characterNft = doc.data()
+            let nftItem = {
+              id: doc.id,
+              theme: item.name,
+              image: characterNft.imageUrl,
+              // name: theme.name,
+              description: characterNft.description,
+              tokenURI: characterNft.tokenURI,
+              //startTime: theme.startTime,
+              //duration: theme.duration,
+              minted: characterNft.minted,
+              winningBid: item.winningBid,
+              winningBidder: item.winningBidder,
+              daysToMint: daysToMint
+            }
+            nftItem.mintStatus = mintStatus
+            if (nftItem.minted) {
+              nftItem.mintStatus = 'Minted Once'
+            }
+            updateNfts( arr => [...arr, nftItem])
           })
-        }
+        })
       }
     })
-    setLoadingState('loaded')
   }
 
   useEffect(() => {
     loadFirebase()
+      .then(
+        setLoadingState('loaded')
+      )
 
     return function cleanup() {
       //mounted = false
     }
   }, [address])
 
+  async function validateWalletRequestPermissions() {
+      try {
+        let permissions = await window.ethereum.request({
+            method: "wallet_requestPermissions",
+            params: [
+              {
+                eth_accounts: {}
+              }
+            ]
+          })
+          const accountsPermission = permissions.find(
+            (permission) => permission.parentCapability === 'eth_accounts'
+          )
+          if (accountsPermission) {
+            console.log('eth_accounts permission successfully requested!')
+          }
+      } catch(error) {
+          console.log('****validateWalletRequestPermissions error', error)
+          if (error.code === 4001) {
+            throw {title: 'Error - Please check your wallet and try again', message: 'Connection request has been rejected. '}
+          } else if (error.code === -32601) {
+            throw {title: 'Error - Please check your wallet and try again', message: 'Permissions needed to continue.'}
+          } else if (error.code === -32002) {
+            throw {title: 'Error - Please check your wallet and try again', message: error.message}
+          } else {
+            throw {title: 'Error - Please check your wallet and try again', message: error.message}
+          }
+      }
+  }
+
+  async function validateMinting(nft) {
+    if (nft.minted) {
+      throw {title: 'Error - NFT has already been minted.', message: ''}
+    }
+    if (window.ethereum) {
+      try {
+        await validateWalletRequestPermissions()
+      } catch(error) {
+        console.log("****validateWalletRequestPermissions", error)
+        //do not rethrow because Brave wallet does not yet support wallet_requestPermissions
+      }
+      let result = await Promise.all([
+        window.ethereum.request({ method: 'eth_requestAccounts' }),
+        window.ethereum.request({ method: 'eth_chainId' })
+      ]).catch((error) => {
+        console.log('****validateMinting error', error)
+        if (error.code === 4001) {
+          throw {title: 'Error - Please check your wallet and try again', message: 'Connection request has been rejected. '}
+        } else if (error.code === -32002) {
+          throw {title: 'Error - Please check your wallet and try again', message: error.message}
+        } else {
+          throw {title: 'Error - Please check your wallet and try again', message: error.message}
+        }
+      })
+      if (result) {
+        console.log('****validateMinting result', result)
+        let [accounts, chainId] = result
+        if (accounts.length === 0) {
+          throw {title: 'Error - Please check your wallet and try again', message: `MetaMask is locked or the user has not connected any accounts`}
+        }
+        if (chainId !== envChainId) {
+          throw {title: 'Error - Please check your wallet and try again', message: `Error - Is your wallet connected to ${envChainName}?`}
+        }
+      }
+    } else {
+      throw {title: 'Error - Non-Ethereum browser detected.', message: 'You should consider installing MetaMask'}
+    }
+  }
+
+  async function mint(nft) {
+    setMintingState(true)
+    try {
+      await validateMinting(nft)
+      await mintFirebase(nft)
+    } catch(error) {
+      setModalMessage(error)
+    }
+    setMintingState(false)
+  }
+
   async function mintFirebase(nft) {
     try {
-      if (nft.minted) {
-        throw `Error - NFT has already been minted.`
-      }
       setShowModal(true)
       const provider = new ethers.providers.Web3Provider(window.ethereum)
       const signer = provider.getSigner()
-
-      /* next, create the item */
       let contract = new ethers.Contract(nftaddress, NFT.abi, signer)
       let transaction = await contract.createToken(nft.tokenURI)
       setShowModal(false)
@@ -193,50 +284,85 @@ export default function Themes() {
       await updateDoc(nftRef, {
         minted: true
       })
-      setShowModalMinting(false)
       loadFirebase()
-    } catch (error) {
+        .then(
+          setLoadingState('loaded')
+        )
+    } catch(error) {
+      throw {title: 'Error - Please check your wallet and try again', message: error.message}
+    } finally {
       setShowModal(false)
       setShowModalMinting(false)
-      setErrorMessage(error || error.message)
     }
   }
   if (loadingState === 'loaded' && !nfts.length) return (
-    <div>
-      <main>
-        <section className="py-5 text-center container">
-          <div className="row py-lg-5">
-            <div className="col-lg-6 col-md-8 mx-auto">
-              <h1 className="fw-light">Mint Your Own Themes</h1>
-              <p>You have nothing to mint</p>
+    <div className="modal modal-signin position-static d-block bg-secondary py-5" role="dialog">
+      <div className="modal-dialog" role="document">
+        <div className="modal-content rounded-5 shadow">
+          <div className="modal-header p-5 pb-4 border-bottom-0">
+            <h2 className="fw-bold mb-0">You have nothing to mint.</h2>
+            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={() => setModalMessage(false)}></button>
+          </div>
+
+          <div className="modal-body p-5 pt-0">
+            <div className="p-4">
             </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </div>
     </div>
   )
   if (showModal) return (
-    <div>
-      <div className="p-4">
-        <p>Please wait. Your METAMASK wallet will prompt you once for minting your NFT Character token.</p>
-        <p>{errorMessage}</p>
-        <div className="loader"></div>
+    <div className="modal modal-signin position-static d-block bg-secondary py-5" role="dialog">
+      <div className="modal-dialog" role="document">
+        <div className="modal-content rounded-5 shadow">
+          <div className="modal-header p-5 pb-4 border-bottom-0">
+            <h2 className="fw-bold mb-0">Please wait. Your wallet will prompt you for minting your NFT Character token.</h2>
+            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={() => setModalMessage(false)}></button>
+          </div>
+
+          <div className="modal-body p-5 pt-0">
+            <div className="p-4">
+              <div className="loader"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
   if (showModalMinting) return (
-    <div>
-      <div className="p-4">
-        <p>Please wait. We are waiting for Smart Contract to finish processing.</p>
-        <p>{errorMessage}</p>
-        {!errorMessage && <div className="loader4Color"></div>}
+    <div className="modal modal-signin position-static d-block bg-secondary py-5" role="dialog">
+      <div className="modal-dialog" role="document">
+        <div className="modal-content rounded-5 shadow">
+          <div className="modal-header p-5 pb-4 border-bottom-0">
+            <h2 className="fw-bold mb-0">Please wait. We are waiting for Smart Contract to finish processing.</h2>
+            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={() => setModalMessage(false)}></button>
+          </div>
+
+          <div className="modal-body p-5 pt-0">
+            <div className="p-4">
+              <div className="loader4Color"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
-  if (errorMessage) return (
-    <div>
-      <div className="p-4">
-        <p>{errorMessage}</p>
+  if (modalMessage) return (
+    <div className="modal modal-signin position-static d-block bg-secondary py-5" role="dialog">
+      <div className="modal-dialog" role="document">
+        <div className="modal-content rounded-5 shadow">
+          <div className="modal-header p-5 pb-4 border-bottom-0">
+            <h2 className="fw-bold mb-0">{modalMessage.title}</h2>
+            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={() => setModalMessage(false)}></button>
+          </div>
+
+          <div className="modal-body p-5 pt-0">
+            <div className="p-4">
+              <p>{modalMessage.message}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -270,14 +396,14 @@ export default function Themes() {
                       <p className="card-text"><small className="text-muted">{nft.winningBidder}</small></p>
                       <div className="d-flex justify-content-between align-items-center">
                         {
-                          (nft.minted) ?
+                          (nft.mintStatus === 'Mint') ?
                           (
-                            <button type="button" className="btn btn-sm btn-outline-secondary disabled">Minted Once</button>
+                            <button type="button" className="btn btn-sm btn-outline-warning" onClick={() => mint(nft)}>Mint</button>
                           ) : (
-                            <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => mintFirebase(nft)}>Mint</button>
+                            <button type="button" className="btn btn-sm btn-outline-secondary disabled">{nft.mintStatus}</button>
                           )
                         }
-                        <small className="text-muted">{nft.winningBid} MATIC</small>
+                        <small className="text-muted">{nft.daysToMint}</small>
                       </div>
                       </div>
                     </div>

@@ -1,0 +1,36 @@
+
+  let provider = new ethers.providers.Web3Provider(window.ethereum, "any")
+  provider
+    .on("network", (newNetwork, oldNetwork) => {
+      console.log('handleNetworkChanged event is fired upon changing network', newNetwork, oldNetwork)
+      // When a Provider makes its initial connection, it emits a "network"
+      // event with a null oldNetwork along with the newNetwork. So, if the
+      // oldNetwork exists, it represents a changing network
+      if (oldNetwork) {
+        //We strongly recommend reloading the page on chain changes, unless you have good reason not to.
+        //window.location.reload()
+      }
+    }
+  )
+
+  window.ethereum.on('connect', (info) => {
+    console.log('handleConnect event is fired upon changing network', info);
+  })
+
+  window.ethereum.on('disconnect', (error) => {
+    console.log('handleDisconnect event is fired upon changing network', error);
+  })
+
+  window.ethereum.on('chainChanged', (chainId) => {
+    console.log('handleChainChanged event is fired upon changing network', chainId);
+    if (chainId !== envChainId) {
+      throw `Error - Is MetaMask connected to ${envChainName}?`
+    }
+  })
+
+  window.ethereum.on('accountsChanged', (accounts) => {
+    if (accounts.length === 0) {
+      //throw `MetaMask is locked or the user has not connected any accounts`
+      //disable bid button
+    }
+  })

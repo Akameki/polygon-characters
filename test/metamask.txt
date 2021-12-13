@@ -1,0 +1,230 @@
+Chrome Metamask random errors
+- network block skew detected; skipping block events (emitted=22590946 blockNumber22595500)
+
+- Account1 and Account4 disconnected
+- check Account1 uncheck Account4
+  Metamask error {code: -32603, message: "Cannot set properties of undefined (setting 'loadingDefaults')", data: {…}}
+https://github.com/MetaMask/metamask-extension/issues/7286
+It is very possible that the RPC endpoint you are using to connect to the network with MetaMask is congested or experiencing technical problems. I found a solution that may work for you if you have this problem.
+
+For Polygon you can add another RPC endpoint.
+
+Here is a list of RPC endpoints for Polygon and a reminder of how to set it up:
+https://docs.dfyn.network/guides/changing-polygons-rpc-endpoint-on-metamask
+
+
+Demo
+- best practice
+  - try to start with active account for payment
+  - try to start with active account Connected
+  - try to start with all inactive accounts disconnected
+  - try not to change connection status in the midst of bidding
+    - to avoid getting into subsequent confusion state
+    - even Brave and Metamask does not agree
+Test Case 1.1 - if active account is not connected
+  - try to connect to only the active account for bidding
+  - try to disconnect from all other accounts
+Test Case 2.1 - if active account is connected
+  - Metamask prompts
+  - Brave does not prompt
+  - try to remember to worry - would my wallet pay via other inactive connected accounts?
+  - try to remember the risk where the wallet may or may not pay via your active account
+Test Case 1.2 - try to avoid switching connect accounts when prompted to avoid in active disconnected account
+  - to avoid getting into subsequent confusion state
+  - try to remember to second guess your wallet QA process, your web2.0 website QA process
+  - try to worry - what if the wallet may not pay via your active account?
+Test Case 1.3 - try not to connect to multiple accounts
+
+Brave Test Setup
+//Account1 0x8455F865277768af76985F7CE4380070B513Dee6 balance: 10
+//Account2 0xfF939cb4D8692fdBeDba759CB28D50110e5bf01e balance: 0
+//Account3 0xeaEBF70878b0bF1713143c4973cDA072808E66Ec balance: 0
+//Account4 0x26fd97e95D10c61f2750FB53FAFc089c3A36ba3F balance: 11
+********************************************************************************
+Test Case 1.1 - all not connected; Account4 (active) not connected
+  - select to connect with Account4
+  Results
+  - proceeds to prompt Account4 for gas fee
+  - Account4 becomes connected
+  - Account4 remains active
+Test Case 1.2 - all not connected; Account4 (active) not connected
+  - select to connect with Account2
+  Results
+  - proceeds to prompt Account2 for gas fee
+  - Account2 becomes connected
+  - Account4 remains active
+Test Case 1.3 - all not connected; Account4 (active) not connected
+  - select to connect with Account2 and Account4
+  Results
+  - proceeds to prompt Account2 for gas fee (Metamask 4)
+  - Account2 becomes connected
+  - Account4 becomes connected
+  - Account4 remains active
+Test Case 1.4 - all not connected; Account2 (active) not connected
+  - select to connect with Account2 and Account4
+  Results
+  - proceeds to prompt Account2 for gas fee
+  - Account2 remains active
+  - Account2 becomes connected
+  - Account4 becomes connected
+Test Case 1.5 - all not connected; Account4 (active) not connected
+  - select to connect with Account1 and Account4
+  Results
+  - proceeds to prompt Account4 for gas fee
+  - Account1 becomes connected
+  - Account4 becomes connected
+  - Account4 remains active
+         Metamask error {code: -32603, message: "Cannot set properties of undefined (setting 'loadingDefaults')", data: {…}}
+
+********************************************************************************
+Test Case 2.1 - Account1 (active) connected
+  - Metamask
+    - ask for permissions
+    - select to connect with Account1
+    - prompt Account1 for gas fee
+  - Brave
+    - prompt Account1 for gas fee
+Test Case 2.2 - Account1 (inactive) connected, Account4 (active) connected
+  - Metamask
+    - ask for permissions (by default, Account1 is unchecked, Account4 is checked)
+    - check Account1 and Account4
+    - prompt Account4 for gas fee
+  - Brave
+    - no prompts for connecting accounts
+    - prompt Account4 for gas fee
+    - Account4 remains active
+         Metamask Cannot set properties of undefined (setting 'loadingDefaults')
+Test Case 2.3 - Account1 (inactive) connected, Account4 (active) not connected
+  - Metamask
+    - ask for permissions (by default, Account1 is unchecked, Account4 is checked)
+    - check Account1, uncheck Account4
+    - prompt Account1 for gas fee
+  - Brave
+    - bug - no prompts for connecting accounts
+    - prompt Account1 for gas fee
+    - Account4 remains active
+
+********************************************************************************
+Test Case 3.1 - New Metamask session (no metamask session, expired Metamask session)
+Test Case 3.2 - Current Metamask session expires
+- Chrome Metamask login prompt appears
+- Firefox no wallet no errors
+- Brave wallet installed locked
+
+********************************************************************************
+Test Plan
+- New Metamask session (no metamask session, expired Metamask session)
+  - new theme
+  - new theme character
+  - refresh new bids
+  - Bid
+  - Mint (disable Mint button afterward)
+    Expected Results
+    - MonkeyKing continues to work
+    - Metamask
+      - login screen appears
+      - {code: -32002, message: "Request of type 'wallet_requestPermissions' alread…ng for origin http://localhost:3000. Please wait."}
+    - Brave
+      - {code: -32601, message: 'the method wallet_requestPermissions does not exist/is not available'}
+- Current Metamask session expires
+  - new theme
+  - new theme character
+  - refresh new bids
+  - Bid
+  - Mint - expects warning (hide Mint button afterward)
+- Switching from connected account to not connected account
+  - new theme
+  - new theme character
+  - refresh new bids
+  - ???Bid - expects warning (hide Bid button afterward)
+    - or expect to see permission request?
+  - ???Mint - expects warning (hide Mint button afterward)
+    - or expect to see permission request?
+- Switching from not connected account to not connected account
+  - new theme
+  - new theme character
+  - refresh new bids
+  - ???Bid - expects warning (hide Bid button afterward)
+    - or expect to see permission request?
+  - ???Mint - expects warning (hide Mint button afterward)
+    - or expect to see permission request?
+- Switching from connected account to connected account
+  - new theme
+  - new theme character
+  - refresh new bids
+  - Bid
+  - Mint
+- Switching from not connected account to connected account
+  - new theme
+  - new theme character
+  - refresh new bids
+  - Bid
+  - Mint
+- No Metamask
+  - new theme
+  - new theme character
+  - refresh new bids
+  - Bid - expects warning (hide Bid button afterward)
+  - Mint - expects warning (hide Mint button afterward)
+- Switching from Mumbai to not Mumbai
+  - new theme
+  - new theme character
+  - refresh new bids
+  - ???Bid - expects warning (hide Bid button afterward)
+    - or expect to see permission request?
+  - ???Mint - expects warning (hide Mint button afterward)
+    - or expect to see permission request?
+- Switching from not Mumbai to Mumbai
+  - new theme
+  - new theme character
+  - refresh new bids
+  - Bid
+  - Mint
+- Unselect account during permission request
+  - Bidding interrupts
+  - Minting interrupts
+- Select account during permission request
+  - Bidding resumes
+  - Minting resumes
+  - ???not enough funds?
+
+
+
+  eth_requestAccounts
+    (accounts)
+      useEffect(() => {}, [])
+        disable bid/mint button because
+          MetaMask is locked or the user has not connected any accounts, or
+          error.code === 4001; EIP-1193 userRejectedRequest error. If this happens, the user rejected the connection request.
+        toggle mint button depending on whether accounts[0] is the higher bidder
+      validateBidding()
+        interrupt bidding because Metamask is locked, or
+        allow bidding to proceed
+  event accountsChanged
+      useEffect(() => {}, [])
+        disable bid/mint button because Metamask is locked, or
+        toggle mint button depending on whether accounts[0] is the higher bidder
+        or
+        interrupt bidding because Metamask is locked, or
+        allow bidding to proceed
+  if (window.ethereum) {
+      useEffect(() => {}, [])
+        disable bid/mint button because Non-Ethereum browser detected. You should consider installing MetaMask, or
+        eth_requestAccounts,
+      validateBidding()
+        interrupt bidding because Metamask is locked, or
+        allow bidding to proceed
+  eth_getBalance
+      validateBidding()
+        interrupt bidding because Your wallet has a balance less than the Minimum Bid, or
+        allow bidding to proceed
+  eth_chainId
+    (chainId)
+      validateBidding()
+        interrupt bidding because Metamask is not connected to Mumbai, or
+        allow bidding to proceed
+  wallet_requestPermissions
+    (permissions)
+      validateBidding()
+        error.code === 4001; EIP-1193 userRejectedRequest error. If this happens, the user rejected the connection request, or
+        allow bidding to proceed

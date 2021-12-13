@@ -1,0 +1,23 @@
+Monkey King: Pirates
+20211212
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_1.jpeg?alt=media&token=160167ad-e32a-4f47-b01f-8a24e8ac876e
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_1mask.jpeg?alt=media&token=4f921e4c-8969-4379-b1c1-fa16726a51db
+
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_2.jpeg?alt=media&token=45f4997a-facd-44a7-8f22-a03bd509c19c
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_2mask.jpeg?alt=media&token=6e282faa-9d85-4e89-9455-19c3a6652380
+
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_3.jpeg?alt=media&token=372ce7b9-e588-4d35-9824-660c1d54a2e5
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_3mask.jpeg?alt=media&token=acb5102b-c549-4cb5-970c-7863aa30589e
+
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_4.jpeg?alt=media&token=cb7dbebb-0514-498d-b303-f7ec006a45f2
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_4mask.jpeg?alt=media&token=bf55b100-2867-4fa3-8259-dd4603459d47
+
+https://console.firebase.google.com/u/3/project/pay-a-vegan/storage/pay-a-vegan.appspot.com/files/~2Fnft~2Fmkpirates
+https://firebasestorage.googleapis.com/v0/b/pay-a-vegan.appspot.com/o/nft%2Fmkpirates%2FMK3_5mask.jpeg?alt=media&token=f90ff064-0081-4f8e-8931-353063cb7359
+
+insert into firebase character-nfts for 1) mp4 display on themes.js 2) nft json for openseas
+
+insert into firebase character for jpeg carousel display on index.js
+- description, fileUrl, maskUrl, name, order, theme
+
+update firebase character-themes from Monkey King Pirates to Monkey King: Pirates

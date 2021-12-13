@@ -10,6 +10,7 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
+          <link rel="shortcut icon" href="/monkey-logo.png" />
           <link rel="stylesheet" media="screen" href="https://fontlibrary.org//face/chachicle" type="text/css"/>
         </Head>
         <body>

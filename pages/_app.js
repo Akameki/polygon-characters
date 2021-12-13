@@ -49,6 +49,8 @@ function Marketplace({ Component, pageProps }) {
         </div>
       </nav>
       <Component {...pageProps} />
+      <footer className="page-footer">
+      </footer>
     </div>
   )
 }

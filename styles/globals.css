@@ -3,6 +3,13 @@
 @tailwind components;
 @tailwind utilities;
 
+.page-footer {
+  min-height: 500px;
+
+  background-image: url('/page-footer.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+}
 .page-header {
     background-size: cover;
     background-image: url(/monkey1.jpeg);
