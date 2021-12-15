@@ -61,7 +61,7 @@ export default function Home() {
   }
 
   function startTime() {
-    return new Date('Dec 14 2021 9:29:00 EST')
+    return new Date('Dec 15 2021 5:00:00 EST')
   }
 
   function nextThemeIndex() {
@@ -74,11 +74,8 @@ export default function Home() {
 
   function endThemeTime() {
     const d = new Date()
-    let duration = 24 * 60 * 60
-    let differenceInSeconds = Math.floor((d - startTime()) / (1000))  //production
-    //differenceInSeconds = duration - 60 // 1 minute (testing)
-    //differenceInSeconds = duration - 3600 // 1 hour (testing)
-    //differenceInSeconds = duration - 86400 // 1 day (testing)
+    let duration = 24 * 60 * 60 * (1 + nextThemeIndex())
+    let differenceInSeconds = Math.floor((d - startTime()) / (1000))
     return Math.floor(Date.now() / 1000) + (duration - differenceInSeconds)
   }
 
@@ -87,8 +84,7 @@ export default function Home() {
     let hour = d.getUTCHours()
     let startHour = startTime().getUTCHours()
     //return 0 //a constant number of revealed figures
-    return Math.floor(hour - startHour) //every 1 hour
-    //return Math.floor(hour / 5) //every 3 hours
+    return Math.floor((hour - startHour) / 5) //every 3 hours
   }
 
   function groupBy(arr, criteria) {
@@ -178,7 +174,7 @@ export default function Home() {
           let item = {
             id: doc.id,
             price: bid.price,
-            theme: data.theme,
+            theme: data.name,
             bidder: bid.bidder,
             createdAt: new Date(bid.createdAt).toString()
           }
@@ -617,6 +613,7 @@ export default function Home() {
               <div className="card-body">
                 <div className="row mb-6">
                   <h2 className="card-title">{themeIndexes.title}</h2>
+                  <h3>{themes[themeIndexes.themeIndex]}</h3>
                 </div>
                 {
                   themeIndexes.themeIndex === nextThemeIndex() &&
