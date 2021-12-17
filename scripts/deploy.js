@@ -26,15 +26,6 @@ async function main() {
 
   let data = JSON.stringify(config)
   fs.writeFileSync('config.js', JSON.parse(data))
-
-  let mint_config = `
-  {
-    "nftaddress" : "${nft.address}"
-  }
-  `
-
-  let mint_data = JSON.stringify(mint_config)
-  fs.writeFileSync('mint_config.json', JSON.parse(mint_data))
 }
 
 main()

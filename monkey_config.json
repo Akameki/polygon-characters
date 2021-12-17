@@ -9,6 +9,26 @@
       "id" : "0x7a69"
     }
   },
+  "ropsten": {
+    "contract_owner" : {
+      "name" : "Treasury",
+      "address" : "0x31b4cE41b12eBb0d1E7beEE20997069EBC20545D"
+    },
+    "chain" : {
+      "name" : "ropsten",
+      "id" : "0x3"
+    }
+  },
+  "rinkeby": {
+    "contract_owner" : {
+      "name" : "Treasury",
+      "address" : "0x31b4cE41b12eBb0d1E7beEE20997069EBC20545D"
+    },
+    "chain" : {
+      "name" : "rinkeby",
+      "id" : "0x4"
+    }
+  },
   "mumbai": {
     "contract_owner" : {
       "name" : "Treasury",

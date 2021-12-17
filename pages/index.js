@@ -61,7 +61,7 @@ export default function Home() {
   }
 
   function startTime() {
-    return new Date('Dec 15 2021 5:00:00 EST')
+    return new Date('Dec 17 2021 18:00:00 EST')
   }
 
   function nextThemeIndex() {
