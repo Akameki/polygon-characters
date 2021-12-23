@@ -26,6 +26,7 @@ export default function Home() {
   const [loadingState, setLoadingState] = useState('not-loaded')
   const [biddingState, setBiddingState] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [showMint, setShowMint] = useState(false)
   const [showModalMinting, setShowModalMinting] = useState(false)
   const [showModalMessage, setShowModalMessage] = useState('')
   const [modalMessage, setModalMessage] = useState(false)
@@ -61,7 +62,7 @@ export default function Home() {
   }
 
   function startTime() {
-    return new Date('Dec 17 2021 18:00:00 EST')
+    return new Date('Dec 23 2021 00:00:00 EST')
   }
 
   function nextThemeIndex() {
@@ -167,10 +168,10 @@ export default function Home() {
       const bidData = []
       themesQuerySnapshot.forEach((doc) => {
         let data = doc.data()
-        let bids = (data.bids || []).sort((a, b) => {
+        let data_bids = (data.bids || []).sort((a, b) => {
           return b.createdAt - a.createdAt
         })
-        bids.forEach((bid, i) => {
+        data_bids.forEach((bid, i) => {
           let item = {
             id: doc.id,
             price: bid.price,
@@ -182,6 +183,20 @@ export default function Home() {
           bidData.push(item)
         })
       })
+
+      try {
+        if (window.ethereum) {
+          let addresses = await window.ethereum.request({ method: 'eth_requestAccounts' })
+          console.log("showMint1", showMint)
+          console.log("addresses[0].toUpperCase()", addresses[0].toUpperCase())
+          console.log("bidData[0].bidder.toUpperCase()", bidData[0].bidder.toUpperCase())
+          setShowMint(bidData[0].bidder.toUpperCase() === addresses[0].toUpperCase())
+          console.log("showMint2", showMint)
+        }
+      } catch (e) {
+        console.log("error in request", e);
+        // location.reload();
+      }
 
       lowestBid = ((bidData[0]?.price || 0) + 0.2).toFixed(2)
 
@@ -378,10 +393,10 @@ export default function Home() {
     const bidData = []
     querySnapshot.forEach((doc) => {
       let data = doc.data()
-      let bids = (data.bids || []).sort((a, b) => {
+      let data_bids = (data.bids || []).sort((a, b) => {
         return a.createdAt < b.createdAt
       })
-      bids.forEach((bid, i) => {
+      data_bids.forEach((bid, i) => {
         let item = {
           id: doc.id,
           price: bid.price,
@@ -669,7 +684,7 @@ export default function Home() {
                               <div>
                                 <h2 className="card-subtitle mb-2">{bids[0]?.bidder_string}</h2>
                                 {
-                                  bids[0].bidder.toUpperCase() === address.toUpperCase() &&
+                                  showMint &&
                                   <Link href="/themes">
                                     <a className="btn bouton-image-mint"></a>
                                   </Link>
