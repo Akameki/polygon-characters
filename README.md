@@ -30,6 +30,7 @@ Refer to https://github.com/nvm-sh/nvm
      $ yarn
 
      $ npm run dev
+     > if you run on Windows and see a pop-up, just hit OK
 
 # Asset Configuration - characters (Firebase collection)
 Each document represents a MonkeyKing character you see in the Carousel:
