@@ -1,14 +1,33 @@
+# Installation on Windows
+Refer to https://github.com/nvm-sh/nvm
+- Install GitBash from https://gitforwindows.org/
+- Run GitBash from taskbar
+  - This should open a GitBash shell
+- Execute the followings in the GitBash shell
+     $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+     
+     $ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+     
+     $ [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+     
+     $ nvm install 16
+     
+     $ nvm use 16
+     
+     $ node -v
+     > 16.13.1
+
 # Steps to run webapp
-$ git clone https://github.com/tong2984a/polygon-characters polygon-characters
+     $ git clone https://github.com/tong2984a/polygon-characters polygon-characters
 
-$ cd polygon-characters
+     $ cd polygon-characters
 
-$ node version
-> v16.10.0
+     $ node version
+     > v16.10.0
 
-$ yarn
+     $ yarn
 
-$ npm run dev
+     $ npm run dev
 
 # Asset Configuration - characters (Firebase collection)
 Each document represents a MonkeyKing character you see in the Carousel:
