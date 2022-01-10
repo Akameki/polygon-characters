@@ -17,6 +17,8 @@ Refer to https://github.com/nvm-sh/nvm
      $ node -v
      > 16.13.1
 
+     $ npm install --global yarn
+
 # Steps to run webapp
      $ git clone https://github.com/tong2984a/polygon-characters polygon-characters
 
