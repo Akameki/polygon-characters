@@ -32,7 +32,7 @@ Refer to https://github.com/nvm-sh/nvm
      $ npm run dev
      > if you run on Windows and see a pop-up, just hit OK
      
-     - point your browser to http://localhost:3000
+     lastly, point your browser to http://localhost:3000
 
 # Asset Configuration - characters (Firebase collection)
 Each document represents a MonkeyKing character you see in the Carousel:
