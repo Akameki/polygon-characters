@@ -22,7 +22,7 @@ Refer to https://github.com/nvm-sh/nvm
 
      $ cd polygon-characters
 
-     $ node version
+     $ node -v
      > v16.10.0
 
      $ yarn
