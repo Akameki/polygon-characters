@@ -15,6 +15,7 @@ import NFT from '../artifacts/contracts/NFT.sol/NFT.json'
 import { initializeApp, getApps } from "firebase/app"
 import { getStorage, ref, listAll } from "firebase/storage";
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, limit, where} from "firebase/firestore";
+import Carousel from '../components/Carousel'
 
 export default function Themes() {
   const [nfts, updateNfts] = useState([])
@@ -130,7 +131,7 @@ export default function Themes() {
         daysToMint = `${diffDays} days`
         mintStatus = 'Expired'
       }
-      if (item.winningBidder.toUpperCase() === address.toUpperCase()) {
+      // if (item.winningBidder.toUpperCase() === address.toUpperCase()) {
         const nftsRef = collection(db, "character-nfts")
         const nftsQuery = query(nftsRef, where("theme", "==", item.name))
         getDocs(nftsQuery).then(nftQuerySnapshot => {
@@ -157,7 +158,7 @@ export default function Themes() {
             updateNfts( arr => [...arr, nftItem])
           })
         })
-      }
+      // }
     })
   }
 
@@ -377,41 +378,7 @@ export default function Themes() {
           </div>
         </section>
         <div className="album py-5 bg-light">
-          <div className="container">
-            <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-              {
-                nfts.map((nft, i) => (
-                  <div key={i} className="col">
-                    <div className="card shadow-sm border-5">
-                      <div className="card-header text-center">
-                        {nft.theme}
-                      </div>
-                      <div>
-                        <video key={i} autoPlay muted loop alt="NFT series" width="100%" height="100%"
-                           src={nft.image} poster={nft.image} />
-                      </div>
-                      <div className="card-body">
-                      <h5 className="card-title">{nft.name}</h5>
-                      <p className="card-text">{nft.description}</p>
-                      <p className="card-text"><small className="text-muted">{nft.winningBidder}</small></p>
-                      <div className="d-flex justify-content-between align-items-center">
-                        {
-                          (nft.mintStatus === 'Mint') ?
-                          (
-                            <button type="button" className="btn btn-sm btn-outline-warning" onClick={() => mint(nft)}>Mint</button>
-                          ) : (
-                            <button type="button" className="btn btn-sm btn-outline-secondary disabled">{nft.mintStatus}</button>
-                          )
-                        }
-                        <small className="text-muted">{nft.daysToMint}</small>
-                      </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              }
-            </div>
-          </div>
+          <Carousel nfts={nfts} />
         </div>
       </main>
     </div>
